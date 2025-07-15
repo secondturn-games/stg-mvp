@@ -23,18 +23,28 @@ export default async function ProfilePage() {
     console.error('Error fetching profile:', profileError)
   }
 
-  // Get user's listings
+  // If no profile exists, redirect to setup
+  if (!profile) {
+    redirect('/profile/setup')
+  }
+
+  // Get user's listings using the actual user ID from the users table
   const { data: listings, error: listingsError } = await supabase
     .from('listings')
-    .select('*')
-    .eq('seller_id', userId)
+    .select(`
+      *,
+      games!listings_game_id_fkey (
+        title
+      )
+    `)
+    .eq('seller_id', profile.id)
     .order('created_at', { ascending: false })
 
   if (listingsError) {
     console.error('Error fetching listings:', listingsError)
   }
 
-  // Get user's purchases
+  // Get user's purchases using the actual user ID from the users table
   const { data: purchases, error: purchasesError } = await supabase
     .from('transactions')
     .select(`
@@ -42,10 +52,13 @@ export default async function ProfilePage() {
       listings (
         id,
         description,
-        photos
+        photos,
+        games!listings_game_id_fkey (
+          title
+        )
       )
     `)
-    .eq('buyer_id', userId)
+    .eq('buyer_id', profile.id)
     .order('created_at', { ascending: false })
 
   if (purchasesError) {
@@ -57,13 +70,15 @@ export default async function ProfilePage() {
   const formattedListings = listings?.map(listing => ({
     ...listing,
     formattedPrice: listing.price ? formatCurrency(listing.price, locale) : 'Trade',
-    formattedCreatedAt: formatRelativeTime(listing.created_at, locale)
+    formattedCreatedAt: formatRelativeTime(listing.created_at, locale),
+    gameTitle: listing.games?.title?.en || 'Untitled Game'
   })) || []
 
   const formattedPurchases = purchases?.map(purchase => ({
     ...purchase,
     formattedAmount: formatCurrency(purchase.amount, locale),
-    formattedCreatedAt: formatRelativeTime(purchase.created_at, locale)
+    formattedCreatedAt: formatRelativeTime(purchase.created_at, locale),
+    gameTitle: purchase.listings?.games?.title?.en || 'Game'
   })) || []
 
   return (
@@ -129,7 +144,7 @@ export default async function ProfilePage() {
                     </div>
                     <div className="flex-1">
                       <p className="font-medium text-sm">
-                        {listing.description?.en?.split(' - ')[0] || 'Untitled Game'}
+                        {listing.gameTitle}
                       </p>
                       <p className="text-xs text-gray-500">
                         {listing.formattedPrice} • {listing.formattedCreatedAt}
@@ -165,7 +180,7 @@ export default async function ProfilePage() {
                     </div>
                     <div className="flex-1">
                       <p className="font-medium text-sm">
-                        {purchase.listings?.description?.en?.split(' - ')[0] || 'Game'}
+                        {purchase.gameTitle}
                       </p>
                       <p className="text-xs text-gray-500">
                         {purchase.formattedAmount} • {purchase.formattedCreatedAt}
