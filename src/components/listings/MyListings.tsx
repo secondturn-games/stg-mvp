@@ -13,6 +13,7 @@ interface Listing {
   status: 'active' | 'sold' | 'cancelled' | 'reserved'
   created_at: string
   description: Record<string, string>
+  photos: string[]
 }
 
 interface MyListingsProps {

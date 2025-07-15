@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import ImageUpload from './ImageUpload'
 
 interface ListingFormData {
   gameTitle: string
@@ -12,6 +13,7 @@ interface ListingFormData {
   condition: 'new' | 'like_new' | 'very_good' | 'good' | 'acceptable'
   locationCity: string
   description: string
+  images: string[]
   shippingOptions: {
     omniva: boolean
     dpd: boolean
@@ -30,6 +32,7 @@ export default function ListingForm() {
     condition: 'very_good',
     locationCity: '',
     description: '',
+    images: [],
     shippingOptions: {
       omniva: true,
       dpd: true,
@@ -86,6 +89,13 @@ export default function ListingForm() {
         ...prev.shippingOptions,
         [option]: !prev.shippingOptions[option]
       }
+    }))
+  }
+
+  const handleImagesChange = (images: string[]) => {
+    setFormData(prev => ({
+      ...prev,
+      images
     }))
   }
 
@@ -213,6 +223,15 @@ export default function ListingForm() {
           rows={4}
           placeholder="Describe the game, its components, any damage, etc."
           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        />
+      </div>
+
+      {/* Image Upload */}
+      <div>
+        <h4 className="text-md font-medium text-gray-700 mb-3">Images</h4>
+        <ImageUpload 
+          onImagesChange={handleImagesChange}
+          maxImages={6}
         />
       </div>
 

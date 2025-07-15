@@ -12,6 +12,7 @@ interface Listing {
   location_country: string
   created_at: string
   description: Record<string, string>
+  photos: string[]
   users: {
     username: string
   }
@@ -95,10 +96,18 @@ export default function MarketplaceListings({ listings }: MarketplaceListingsPro
         >
           {/* Game Image */}
           <div className="aspect-square bg-gray-100 rounded-t-lg flex items-center justify-center">
-            <div className="text-gray-400 text-center p-4">
-              <div className="text-4xl mb-2">🎲</div>
-              <div className="text-sm">No Image</div>
-            </div>
+            {listing.photos && listing.photos.length > 0 ? (
+              <img 
+                src={listing.photos[0]} 
+                alt={listing.description?.en?.split(' - ')[0] || 'Game'}
+                className="w-full h-full object-cover rounded-t-lg"
+              />
+            ) : (
+              <div className="text-gray-400 text-center p-4">
+                <div className="text-4xl mb-2">🎲</div>
+                <div className="text-sm">No Image</div>
+              </div>
+            )}
           </div>
 
           {/* Game Info */}

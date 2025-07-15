@@ -22,6 +22,7 @@ export async function POST(request: NextRequest) {
       condition,
       locationCity,
       description,
+      images,
       shippingOptions
     } = body
 
@@ -79,7 +80,7 @@ export async function POST(request: NextRequest) {
       location_country: userProfile.country,
       location_city: locationCity,
       shipping_options: shippingOptions,
-      photos: [], // Will be added later with image upload
+      photos: images || [], // Store uploaded image URLs
       description: { en: `${gameTitle} - ${description}`, et: `${gameTitle} - ${description}`, lv: `${gameTitle} - ${description}`, lt: `${gameTitle} - ${description}` },
       status: 'active',
       verified_photos: false
