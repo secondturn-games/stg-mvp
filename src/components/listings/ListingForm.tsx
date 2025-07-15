@@ -3,8 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import ImageUpload from './ImageUpload'
-import DateTimeInput from '@/components/ui/DateTimeInput'
-import { getUserLocale, ensure24HourFormat, validate24HourTime } from '@/lib/regional-settings'
+import { getUserLocale } from '@/lib/regional-settings'
 
 interface ListingFormData {
   gameTitle: string
@@ -23,6 +22,7 @@ interface ListingFormData {
   }
   // Auction-specific fields
   startingPrice: string
+  auctionDays: string
   endTime: string
   reservePrice: string
   buyNowPrice: string
@@ -50,6 +50,7 @@ export default function ListingForm() {
     },
     // Auction-specific fields
     startingPrice: '',
+    auctionDays: '1',
     endTime: '',
     reservePrice: '',
     buyNowPrice: '',
@@ -58,23 +59,7 @@ export default function ListingForm() {
   const [isLoading, setIsLoading] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
-  // Get minimum date for auction end time (24 hours from now)
-  const getMinDate = () => {
-    const now = new Date()
-    now.setHours(now.getHours() + 24) // Minimum 24 hours from now
-    return now.toISOString().slice(0, 16) // Format: YYYY-MM-DDTHH:MM
-  }
-
-  // Format time for display (24-hour format)
-  const formatTimeForDisplay = (date: Date) => {
-    return date.toLocaleTimeString(locale, {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false
-    })
-  }
-
-  // Validate time format
+  // Validate 24-hour time format
   const validateTimeFormat = (timeString: string) => {
     const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/
     return timeRegex.test(timeString)
@@ -114,20 +99,10 @@ export default function ListingForm() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
-    
-    // Ensure 24-hour format for datetime inputs
-    if (name === 'endTime' && value) {
-      const formattedValue = ensure24HourFormat(value)
-      setFormData(prev => ({
-        ...prev,
-        [name]: formattedValue
-      }))
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        [name]: value
-      }))
-    }
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }))
   }
 
   const handleShippingChange = (option: keyof typeof formData.shippingOptions) => {
@@ -239,15 +214,52 @@ export default function ListingForm() {
               </div>
 
               <div>
-                <DateTimeInput
-                  value={formData.endTime}
-                  onChange={(value) => setFormData(prev => ({ ...prev, endTime: value }))}
-                  min={getMinDate()}
+                <label htmlFor="auctionDays" className="block text-sm font-medium text-gray-700 mb-2">
+                  Auction Duration (Days) *
+                </label>
+                <input
+                  type="number"
+                  id="auctionDays"
+                  name="auctionDays"
+                  value={formData.auctionDays}
+                  onChange={handleChange}
                   required
-                  label="End Time"
+                  min="1"
+                  max="30"
+                  placeholder="1"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  Minimum 24 hours from now. Auctions automatically extend if bids are placed near the end.
+                  How many days should the auction run? (1-30 days)
+                </p>
+              </div>
+
+              <div>
+                <label htmlFor="endTime" className="block text-sm font-medium text-gray-700 mb-2">
+                  End Time (24h format) *
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    id="endTime"
+                    name="endTime"
+                    value={formData.endTime}
+                    onChange={handleChange}
+                    required
+                    placeholder="14:30"
+                    pattern="[0-9]{1,2}:[0-9]{2}"
+                    maxLength={5}
+                    className="w-full px-3 py-2 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xs text-gray-400 font-mono">
+                    24h
+                  </div>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  What time should the auction end? Use 24-hour format (e.g., 14:30 for 2:30 PM)
+                </p>
+                <p className="text-xs text-blue-600 mt-1">
+                  Current time: {new Date().toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', hour12: false })}
                 </p>
               </div>
             </div>
@@ -310,10 +322,11 @@ export default function ListingForm() {
               <h4 className="text-sm font-medium text-blue-800 mb-2">Auction Tips:</h4>
               <ul className="text-sm text-blue-700 space-y-1">
                 <li>• Set a reasonable starting price to attract bidders</li>
+                <li>• Choose auction duration (1-30 days)</li>
+                <li>• Set end time in 24-hour format (e.g., 14:30 for 2:30 PM)</li>
                 <li>• Reserve price is optional but protects your minimum price</li>
                 <li>• Buy Now price allows instant purchase</li>
                 <li>• Auctions automatically extend if bids are placed near the end</li>
-                <li>• All times are in 24-hour format (Baltic standard)</li>
               </ul>
             </div>
           </div>
