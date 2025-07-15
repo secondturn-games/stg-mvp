@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import ImageUpload from './ImageUpload'
+import DateTimeInput from '@/components/ui/DateTimeInput'
 import { getUserLocale, ensure24HourFormat, validate24HourTime } from '@/lib/regional-settings'
 
 interface ListingFormData {
@@ -238,36 +239,15 @@ export default function ListingForm() {
               </div>
 
               <div>
-                <label htmlFor="endTime" className="block text-sm font-medium text-gray-700 mb-2">
-                  End Time (24h format) *
-                </label>
-                <div className="relative">
-                  <input
-                    type="datetime-local"
-                    id="endTime"
-                    name="endTime"
-                    value={formData.endTime}
-                    onChange={handleChange}
-                    required
-                    min={getMinDate()}
-                    step="900"
-                    className="w-full px-3 py-2 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    pattern="[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}"
-                  />
-                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xs text-gray-400 font-mono">
-                    24h
-                  </div>
-                </div>
-                <div className="flex items-center justify-between mt-1">
-                  <p className="text-xs text-gray-500">
-                    Use 24-hour format (e.g., 14:30 for 2:30 PM). Minimum 24 hours from now.
-                  </p>
-                  <p className="text-xs text-gray-400 font-mono">
-                    Current: {new Date().toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', hour12: false })}
-                  </p>
-                </div>
-                <p className="text-xs text-blue-600 mt-1">
-                  💡 Tip: If you see AM/PM, please use 24-hour time (00:00-23:59)
+                <DateTimeInput
+                  value={formData.endTime}
+                  onChange={(value) => setFormData(prev => ({ ...prev, endTime: value }))}
+                  min={getMinDate()}
+                  required
+                  label="End Time"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Minimum 24 hours from now. Auctions automatically extend if bids are placed near the end.
                 </p>
               </div>
             </div>
