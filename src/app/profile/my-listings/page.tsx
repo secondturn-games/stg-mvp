@@ -259,9 +259,12 @@ export default async function MyListingsPage() {
                           >
                             View
                           </Link>
-                          <button className="text-gray-400 hover:text-gray-600">
+                          <Link
+                            href={item.type === 'listing' ? `/listings/${item.id}/edit` : `/auctions/${item.id}/edit`}
+                            className="text-gray-400 hover:text-gray-600"
+                          >
                             <Edit className="h-4 w-4" />
-                          </button>
+                          </Link>
                           <button className="text-gray-400 hover:text-red-600">
                             <Trash2 className="h-4 w-4" />
                           </button>

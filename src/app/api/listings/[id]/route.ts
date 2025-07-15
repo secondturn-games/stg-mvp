@@ -1,78 +1,180 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { supabase } from '@/lib/supabase'
-import { getCurrentUserProfile } from '@/lib/user-service'
 
+// GET - Get a single listing
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const { data: listing, error } = await supabase
+      .from('listings')
+      .select(`
+        *,
+        users!listings_seller_id_fkey (
+          id,
+          username,
+          location_city
+        ),
+        games!listings_game_id_fkey (
+          title
+        )
+      `)
+      .eq('id', params.id)
+      .single()
+
+    if (error) {
+      return NextResponse.json({ error: 'Listing not found' }, { status: 404 })
+    }
+
+    return NextResponse.json({ listing })
+  } catch (error) {
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+
+// PUT - Update a listing
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const { userId } = await auth()
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Get user profile
+    const { data: profile } = await supabase
+      .from('users')
+      .select('id')
+      .eq('clerk_id', userId)
+      .single()
+
+    if (!profile) {
+      return NextResponse.json({ error: 'User profile not found' }, { status: 404 })
+    }
+
+    // Check if listing exists and user owns it
+    const { data: existingListing, error: fetchError } = await supabase
+      .from('listings')
+      .select('seller_id, listing_type')
+      .eq('id', params.id)
+      .single()
+
+    if (fetchError || !existingListing) {
+      return NextResponse.json({ error: 'Listing not found' }, { status: 404 })
+    }
+
+    if (existingListing.seller_id !== profile.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+    }
+
+    const body = await request.json()
+    const {
+      price,
+      currency,
+      condition,
+      location_country,
+      location_city,
+      shipping_options,
+      description,
+      photos
+    } = body
+
+    // Update listing
+    const { data: updatedListing, error: updateError } = await supabase
+      .from('listings')
+      .update({
+        price,
+        currency,
+        condition,
+        location_country,
+        location_city,
+        shipping_options,
+        description,
+        photos,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', params.id)
+      .select()
+      .single()
+
+    if (updateError) {
+      return NextResponse.json({ error: 'Failed to update listing' }, { status: 500 })
+    }
+
+    return NextResponse.json({ listing: updatedListing })
+  } catch (error) {
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+
+// DELETE - Delete a listing
 export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
     const { userId } = await auth()
-    
     if (!userId) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-
-    const listingId = params.id
 
     // Get user profile
-    const userProfile = await getCurrentUserProfile()
-    if (!userProfile) {
-      return NextResponse.json(
-        { error: 'User profile not found' },
-        { status: 400 }
-      )
-    }
-
-    // Check if listing exists and belongs to user
-    const { data: listing, error: fetchError } = await supabase
-      .from('listings')
-      .select('seller_id')
-      .eq('id', listingId)
+    const { data: profile } = await supabase
+      .from('users')
+      .select('id')
+      .eq('clerk_id', userId)
       .single()
 
-    if (fetchError || !listing) {
-      return NextResponse.json(
-        { error: 'Listing not found' },
-        { status: 404 }
-      )
+    if (!profile) {
+      return NextResponse.json({ error: 'User profile not found' }, { status: 404 })
     }
 
-    if (listing.seller_id !== userProfile.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized to delete this listing' },
-        { status: 403 }
-      )
+    // Check if listing exists and user owns it
+    const { data: existingListing, error: fetchError } = await supabase
+      .from('listings')
+      .select('seller_id, listing_type')
+      .eq('id', params.id)
+      .single()
+
+    if (fetchError || !existingListing) {
+      return NextResponse.json({ error: 'Listing not found' }, { status: 404 })
     }
 
-    // Delete the listing
+    if (existingListing.seller_id !== profile.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+    }
+
+    // If it's an auction, check if it has active bids
+    if (existingListing.listing_type === 'auction') {
+      const { data: auction, error: auctionError } = await supabase
+        .from('auctions')
+        .select('status, bid_count')
+        .eq('listing_id', params.id)
+        .single()
+
+      if (!auctionError && auction && auction.bid_count > 0) {
+        return NextResponse.json({ 
+          error: 'Cannot delete auction with active bids' 
+        }, { status: 400 })
+      }
+    }
+
+    // Delete the listing (this will cascade to auctions if it's an auction)
     const { error: deleteError } = await supabase
       .from('listings')
       .delete()
-      .eq('id', listingId)
+      .eq('id', params.id)
 
     if (deleteError) {
-      console.error('Error deleting listing:', deleteError)
-      return NextResponse.json(
-        { error: 'Failed to delete listing' },
-        { status: 500 }
-      )
+      return NextResponse.json({ error: 'Failed to delete listing' }, { status: 500 })
     }
 
-    return NextResponse.json({
-      success: true,
-      message: 'Listing deleted successfully'
-    })
-
+    return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Error in delete listing:', error)
-    return NextResponse.json(
-      { error: 'Failed to delete listing' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 } 

@@ -1,5 +1,6 @@
 'use client'
 
+import type { FC } from 'react'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import ImageUpload from './ImageUpload'
@@ -16,6 +17,7 @@ interface ListingFormData {
   locationCity: string
   description: string
   images: string[]
+  photos?: string[]
   shippingOptions: {
     omniva: boolean
     dpd: boolean
@@ -35,32 +37,51 @@ interface GameSuggestion {
   title: Record<string, string>
 }
 
-export default function ListingForm() {
+interface ListingFormProps {
+  mode?: 'create' | 'edit'
+  initialValues?: Partial<ListingFormData>
+}
+
+const defaultFormData: ListingFormData = {
+  gameTitle: '',
+  gameId: null,
+  listingType: 'fixed',
+  price: '',
+  currency: 'EUR',
+  condition: 'very_good',
+  locationCity: '',
+  description: '',
+  images: [],
+  shippingOptions: {
+    omniva: true,
+    dpd: true,
+    pickup: true
+  },
+  startingPrice: '',
+  auctionDays: '1',
+  endTime: '',
+  reservePrice: '',
+  buyNowPrice: '',
+  bidIncrement: '1.00'
+}
+
+const ListingForm: FC<ListingFormProps> = ({ mode = 'create', initialValues }) => {
   const router = useRouter()
   const locale = getUserLocale()
   
-  const [formData, setFormData] = useState<ListingFormData>({
-    gameTitle: '',
-    gameId: null,
-    listingType: 'fixed',
-    price: '',
-    currency: 'EUR',
-    condition: 'very_good',
-    locationCity: '',
-    description: '',
-    images: [],
-    shippingOptions: {
-      omniva: true,
-      dpd: true,
-      pickup: true
-    },
-    // Auction-specific fields
-    startingPrice: '',
-    auctionDays: '1',
-    endTime: '',
-    reservePrice: '',
-    buyNowPrice: '',
-    bidIncrement: '1.00'
+  const [formData, setFormData] = useState<ListingFormData>(() => {
+    if (mode === 'edit' && initialValues) {
+      return {
+        ...defaultFormData,
+        ...initialValues,
+        shippingOptions: {
+          ...defaultFormData.shippingOptions,
+          ...initialValues.shippingOptions
+        },
+        images: initialValues.images || initialValues.photos || []
+      }
+    }
+    return defaultFormData
   })
   const [isLoading, setIsLoading] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
@@ -681,4 +702,6 @@ export default function ListingForm() {
     )}
     </>
   )
-} 
+}
+
+export default ListingForm 
