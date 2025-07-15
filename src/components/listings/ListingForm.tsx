@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import ImageUpload from './ImageUpload'
-import { getUserLocale } from '@/lib/regional-settings'
+import { getUserLocale, ensure24HourFormat, validate24HourTime } from '@/lib/regional-settings'
 
 interface ListingFormData {
   gameTitle: string
@@ -64,6 +64,21 @@ export default function ListingForm() {
     return now.toISOString().slice(0, 16) // Format: YYYY-MM-DDTHH:MM
   }
 
+  // Format time for display (24-hour format)
+  const formatTimeForDisplay = (date: Date) => {
+    return date.toLocaleTimeString(locale, {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    })
+  }
+
+  // Validate time format
+  const validateTimeFormat = (timeString: string) => {
+    const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/
+    return timeRegex.test(timeString)
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
@@ -98,10 +113,20 @@ export default function ListingForm() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }))
+    
+    // Ensure 24-hour format for datetime inputs
+    if (name === 'endTime' && value) {
+      const formattedValue = ensure24HourFormat(value)
+      setFormData(prev => ({
+        ...prev,
+        [name]: formattedValue
+      }))
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }))
+    }
   }
 
   const handleShippingChange = (option: keyof typeof formData.shippingOptions) => {
@@ -216,18 +241,33 @@ export default function ListingForm() {
                 <label htmlFor="endTime" className="block text-sm font-medium text-gray-700 mb-2">
                   End Time (24h format) *
                 </label>
-                <input
-                  type="datetime-local"
-                  id="endTime"
-                  name="endTime"
-                  value={formData.endTime}
-                  onChange={handleChange}
-                  required
-                  min={getMinDate()}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Minimum 24 hours from now. Auctions automatically extend if bids are placed near the end.
+                <div className="relative">
+                  <input
+                    type="datetime-local"
+                    id="endTime"
+                    name="endTime"
+                    value={formData.endTime}
+                    onChange={handleChange}
+                    required
+                    min={getMinDate()}
+                    step="900"
+                    className="w-full px-3 py-2 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    pattern="[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}"
+                  />
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xs text-gray-400 font-mono">
+                    24h
+                  </div>
+                </div>
+                <div className="flex items-center justify-between mt-1">
+                  <p className="text-xs text-gray-500">
+                    Use 24-hour format (e.g., 14:30 for 2:30 PM). Minimum 24 hours from now.
+                  </p>
+                  <p className="text-xs text-gray-400 font-mono">
+                    Current: {new Date().toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', hour12: false })}
+                  </p>
+                </div>
+                <p className="text-xs text-blue-600 mt-1">
+                  💡 Tip: If you see AM/PM, please use 24-hour time (00:00-23:59)
                 </p>
               </div>
             </div>

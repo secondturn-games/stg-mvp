@@ -180,4 +180,48 @@ export function getUserLocale(): BalticLocale {
   if (browserLocale.startsWith('lt')) return BALTIC_LOCALES.LITHUANIA
   
   return DEFAULT_LOCALE
+}
+
+// Ensure 24-hour format for datetime inputs
+export function ensure24HourFormat(dateTimeString: string): string {
+  if (!dateTimeString) return dateTimeString
+  
+  const date = new Date(dateTimeString)
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const hours = String(date.getHours()).padStart(2, '0')
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+  
+  return `${year}-${month}-${day}T${hours}:${minutes}`
+}
+
+// Validate 24-hour time format
+export function validate24HourTime(timeString: string): boolean {
+  const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/
+  return timeRegex.test(timeString)
+}
+
+// Convert 12-hour time to 24-hour format
+export function convertTo24Hour(time12h: string): string {
+  const [time, modifier] = time12h.split(' ')
+  let [hours, minutes] = time.split(':')
+  
+  if (hours === '12') {
+    hours = modifier === 'PM' ? '12' : '00'
+  } else if (modifier === 'PM') {
+    hours = String(parseInt(hours) + 12)
+  }
+  
+  return `${hours.padStart(2, '0')}:${minutes}`
+}
+
+// Format time for display with 24-hour format
+export function formatTime24Hour(date: Date | string, locale: BalticLocale = DEFAULT_LOCALE): string {
+  const dateObj = typeof date === 'string' ? new Date(date) : date
+  return dateObj.toLocaleTimeString(locale, {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  })
 } 

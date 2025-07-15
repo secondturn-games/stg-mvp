@@ -2,6 +2,52 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Regional Settings - Baltic 24-hour format */
+input[type="datetime-local"] {
+  /* Force 24-hour format display */
+  font-family: 'Courier New', monospace;
+}
+
+/* Ensure consistent time format display */
+input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  background-color: transparent;
+}
+
+/* Regional number formatting */
+.regional-number {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Baltic-specific styling */
+.baltic-locale {
+  font-feature-settings: "tnum" 1;
+}
+
+/* Ensure proper date/time input styling */
+input[type="date"],
+input[type="time"],
+input[type="datetime-local"] {
+  @apply regional-number baltic-locale;
+}
+
+/* Custom scrollbar for regional consistency */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;
