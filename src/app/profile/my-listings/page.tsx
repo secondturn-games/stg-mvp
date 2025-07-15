@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase'
 import { formatCurrency, formatRelativeTime, getUserLocale } from '@/lib/regional-settings'
 import Link from 'next/link'
 import { ArrowLeft, Edit, Trash2, Clock, Gavel } from 'lucide-react'
+import DeleteButton from '@/components/listings/DeleteButton'
 
 export default async function MyListingsPage() {
   const { userId } = await auth()
@@ -265,9 +266,11 @@ export default async function MyListingsPage() {
                           >
                             <Edit className="h-4 w-4" />
                           </Link>
-                          <button className="text-gray-400 hover:text-red-600">
-                            <Trash2 className="h-4 w-4" />
-                          </button>
+                          <DeleteButton
+                            itemId={item.id}
+                            itemType={item.type}
+                            itemName={item.gameTitle}
+                          />
                         </div>
                       </div>
                     </div>

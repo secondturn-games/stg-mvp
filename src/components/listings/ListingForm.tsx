@@ -8,6 +8,7 @@ import { getUserLocale } from '@/lib/regional-settings'
 import { Eye, X } from 'lucide-react'
 
 interface ListingFormData {
+  id?: string
   gameTitle: string
   gameId: string | null
   listingType: 'fixed' | 'auction' | 'trade'
@@ -124,8 +125,11 @@ const ListingForm: FC<ListingFormProps> = ({ mode = 'create', initialValues }) =
     setMessage(null)
 
     try {
-      const response = await fetch('/api/listings/create', {
-        method: 'POST',
+      const endpoint = mode === 'edit' ? `/api/listings/${initialValues?.id}` : '/api/listings/create'
+      const method = mode === 'edit' ? 'PUT' : 'POST'
+      
+      const response = await fetch(endpoint, {
+        method,
         headers: {
           'Content-Type': 'application/json',
         },
@@ -134,21 +138,33 @@ const ListingForm: FC<ListingFormProps> = ({ mode = 'create', initialValues }) =
 
       if (response.ok) {
         const result = await response.json()
-        setMessage({ type: 'success', text: 'Listing created successfully!' })
+        const successMessage = mode === 'edit' ? 'Listing updated successfully!' : 'Listing created successfully!'
+        setMessage({ type: 'success', text: successMessage })
+        
         // Redirect to the appropriate page based on listing type
         setTimeout(() => {
-          if (result.listingType === 'auction') {
-            router.push(`/auctions/${result.listing.id}`)
+          if (mode === 'edit') {
+            // For edit mode, redirect back to the listing/auction detail page
+            if (formData.listingType === 'auction') {
+              router.push(`/auctions/${initialValues?.id}`)
+            } else {
+              router.push(`/listings/${initialValues?.id}`)
+            }
           } else {
-            router.push(`/listings/${result.listing.id}`)
+            // For create mode, redirect to the new listing/auction
+            if (result.listingType === 'auction') {
+              router.push(`/auctions/${result.listing.id}`)
+            } else {
+              router.push(`/listings/${result.listing.id}`)
+            }
           }
         }, 1500)
       } else {
         const error = await response.json()
-        setMessage({ type: 'error', text: error.message || 'Failed to create listing' })
+        setMessage({ type: 'error', text: error.message || `Failed to ${mode === 'edit' ? 'update' : 'create'} listing` })
       }
     } catch (error) {
-      setMessage({ type: 'error', text: 'An error occurred while creating your listing' })
+      setMessage({ type: 'error', text: `An error occurred while ${mode === 'edit' ? 'updating' : 'creating'} your listing` })
     } finally {
       setIsLoading(false)
     }
