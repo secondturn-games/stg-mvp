@@ -1,7 +1,7 @@
-import { clerkClient } from '@clerk/nextjs/server'
-import { auth } from '@clerk/nextjs/server'
+import { clerkClient } from '@clerk/nextjs/server';
+import { auth } from '@clerk/nextjs/server';
 
-export { auth, clerkClient }
+export { auth, clerkClient };
 
 // Clerk configuration for Baltic marketplace
 export const clerkConfig = {
@@ -20,49 +20,49 @@ export const clerkConfig = {
       colorText: '#29432B', // Forest Deep
     },
   },
-}
+};
 
 // Helper function to get current user
 export async function getCurrentUser() {
-  const { userId } = await auth()
-  
+  const { userId } = await auth();
+
   if (!userId) {
-    return null
+    return null;
   }
 
   try {
-    const client = await clerkClient()
-    const user = await client.users.getUser(userId)
-    return user
+    const client = await clerkClient();
+    const user = await client.users.getUser(userId);
+    return user;
   } catch (error) {
-    console.error('Error fetching user:', error)
-    return null
+    return null;
   }
 }
 
 // Helper function to check if user is verified seller
 export async function isVerifiedSeller(userId: string) {
   try {
-    const client = await clerkClient()
-    const user = await client.users.getUser(userId)
+    const client = await clerkClient();
+    const user = await client.users.getUser(userId);
     // Check for verified seller metadata
-    return user.publicMetadata?.verifiedSeller === true
+    return user.publicMetadata?.verifiedSeller === true;
   } catch (error) {
-    console.error('Error checking verified seller status:', error)
-    return false
+    return false;
   }
 }
 
 // Helper function to update user metadata
-export async function updateUserMetadata(userId: string, metadata: Record<string, any>) {
+export async function updateUserMetadata(
+  userId: string,
+  metadata: Record<string, any>
+) {
   try {
-    const client = await clerkClient()
+    const client = await clerkClient();
     await client.users.updateUser(userId, {
       publicMetadata: metadata,
-    })
-    return true
+    });
+    return true;
   } catch (error) {
-    console.error('Error updating user metadata:', error)
-    return false
+    return false;
   }
-} 
+}

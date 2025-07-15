@@ -1,15 +1,15 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
-import { supabase } from '@/lib/supabase'
+import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
+import { supabase } from '@/lib/supabase';
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await auth()
+    const { userId } = await auth();
     if (!userId) {
-      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await request.json()
+    const body = await request.json();
     const {
       gameTitle,
       listingType,
@@ -26,97 +26,114 @@ export async function POST(request: NextRequest) {
       endTime,
       reservePrice,
       buyNowPrice,
-      bidIncrement
-    } = body
+      bidIncrement,
+    } = body;
 
     // Validate required fields
-    if (!gameTitle || !listingType || !condition || !locationCity || !description) {
-      return NextResponse.json({ message: 'Missing required fields' }, { status: 400 })
+    if (
+      !gameTitle ||
+      !listingType ||
+      !condition ||
+      !locationCity ||
+      !description
+    ) {
+      return NextResponse.json(
+        { message: 'Missing required fields' },
+        { status: 400 }
+      );
     }
 
     // Get user profile
-    let { data: userProfile, error: userError } = await supabase
+    const { data: userProfile, error: userError } = await supabase
       .from('users')
-      .select('id')
+      .select('*')
       .eq('clerk_id', userId)
-      .single()
+      .single();
 
-    console.log('User lookup result:', { userProfile, userError, userId })
+    if (userError && userError.code !== 'PGRST116') {
+      return NextResponse.json(
+        { error: 'Failed to fetch user profile' },
+        { status: 500 }
+      );
+    }
 
-    if (userError || !userProfile) {
+    if (!userProfile) {
       // Create user profile if it doesn't exist
-      console.log('Creating new user profile for:', userId)
-      
-      const { data: newUserProfile, error: createUserError } = await supabase
+      const { error: createUserError } = await supabase
         .from('users')
         .insert({
           clerk_id: userId,
           username: `user_${userId.slice(-8)}`, // Generate a default username
           email: null, // Will be filled by Clerk webhook
           country: 'EE', // Default to Estonia
-          preferred_language: 'en'
+          preferred_language: 'en',
         })
-        .select('id')
-        .single()
-
-      console.log('User creation result:', { newUserProfile, createUserError })
+        .single();
 
       if (createUserError) {
-        console.error('Error creating user profile:', createUserError)
-        return NextResponse.json({ message: 'Failed to create user profile' }, { status: 500 })
+        return NextResponse.json(
+          { error: 'Failed to create user profile' },
+          { status: 500 }
+        );
       }
-
-      userProfile = newUserProfile
     }
 
     // Create or get game
-    let gameId: string
+    let gameId: string;
     const { data: existingGame } = await supabase
       .from('games')
       .select('id')
       .eq('title->en', gameTitle)
-      .single()
+      .single();
 
     if (existingGame) {
-      gameId = existingGame.id
+      gameId = existingGame.id;
     } else {
       const { data: newGame, error: gameError } = await supabase
         .from('games')
         .insert({
-          title: { en: gameTitle }
+          title: { en: gameTitle },
         })
         .select('id')
-        .single()
+        .single();
 
       if (gameError) {
-        console.error('Error creating game:', gameError)
-        return NextResponse.json({ message: 'Failed to create game' }, { status: 500 })
+        return NextResponse.json(
+          { error: 'Failed to create game' },
+          { status: 500 }
+        );
       }
 
-      gameId = newGame.id
+      gameId = newGame.id;
     }
 
     // Calculate auction end time if it's an auction
-    let auctionEndTime: string | null = null
+    let auctionEndTime: string | null = null;
     if (listingType === 'auction') {
       if (!startingPrice || !auctionDays || !endTime) {
-        return NextResponse.json({ message: 'Missing auction fields' }, { status: 400 })
+        return NextResponse.json(
+          { message: 'Missing auction fields' },
+          { status: 400 }
+        );
       }
 
       // Validate time format (HH:MM)
-      const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/
+      const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
       if (!timeRegex.test(endTime)) {
-        return NextResponse.json({ message: 'Invalid time format. Use HH:MM (24-hour format)' }, { status: 400 })
+        return NextResponse.json(
+          { message: 'Invalid time format. Use HH:MM (24-hour format)' },
+          { status: 400 }
+        );
       }
 
       // Calculate end time: current date + auction days + end time
-      const now = new Date()
-      const [hours, minutes] = endTime.split(':').map(Number)
-      const endDate = new Date(now)
-      endDate.setDate(endDate.getDate() + parseInt(auctionDays))
-      endDate.setHours(hours, minutes, 0, 0)
-      
-      auctionEndTime = endDate.toISOString()
+      const now = new Date();
+      const [hours, minutes] = endTime.split(':').map(Number);
+      const endDate = new Date(now);
+      endDate.setDate(endDate.getDate() + parseInt(auctionDays));
+      endDate.setHours(hours, minutes, 0, 0);
+
+      auctionEndTime = endDate.toISOString();
     }
 
     // Create listing
@@ -132,18 +149,20 @@ export async function POST(request: NextRequest) {
       shipping_options: shippingOptions,
       photos: images || [],
       description: { en: description },
-      status: 'active'
-    }
+      status: 'active',
+    };
 
     const { data: listing, error: listingError } = await supabase
       .from('listings')
       .insert(listingData)
       .select('id')
-      .single()
+      .single();
 
     if (listingError) {
-      console.error('Error creating listing:', listingError)
-      return NextResponse.json({ message: 'Failed to create listing' }, { status: 500 })
+      return NextResponse.json(
+        { error: 'Failed to create listing' },
+        { status: 500 }
+      );
     }
 
     // Create auction if it's an auction listing
@@ -158,28 +177,31 @@ export async function POST(request: NextRequest) {
         extension_time: 300, // 5 minutes
         buy_now_price: buyNowPrice ? parseFloat(buyNowPrice) : null,
         status: 'active',
-        minimum_bid: parseFloat(startingPrice)
-      }
+        minimum_bid: parseFloat(startingPrice),
+      };
 
       const { error: auctionError } = await supabase
         .from('auctions')
-        .insert(auctionData)
+        .insert(auctionData);
 
       if (auctionError) {
-        console.error('Error creating auction:', auctionError)
-        return NextResponse.json({ message: 'Failed to create auction' }, { status: 500 })
+        return NextResponse.json(
+          { error: 'Failed to create auction' },
+          { status: 500 }
+        );
       }
     }
 
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       listing: { id: listing.id },
       listingType: listingType,
-      message: 'Listing created successfully' 
-    })
-
+      message: 'Listing created successfully',
+    });
   } catch (error) {
-    console.error('Error in create listing:', error)
-    return NextResponse.json({ message: 'Internal server error' }, { status: 500 })
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
   }
-} 
+}

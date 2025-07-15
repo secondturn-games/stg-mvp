@@ -7,14 +7,12 @@ A trust-first, peer-to-peer marketplace for buying, selling, and trading used bo
 ### 🏗️ Core MVP (100% Complete)
 
 - **User Authentication & Profiles**
-
   - Clerk-powered authentication
   - User profile creation and management
   - Seller verification system
   - Multi-language support (EN, ET, LV, LT)
 
 - **Game Listings System**
-
   - Create and manage listings
   - Image upload with drag & drop
   - Condition grading system
@@ -22,7 +20,6 @@ A trust-first, peer-to-peer marketplace for buying, selling, and trading used bo
   - My listings management
 
 - **Search & Discovery**
-
   - Advanced filtering (condition, price, location, type)
   - Real-time search functionality
   - Sort options (relevance, price, date)
@@ -30,7 +27,6 @@ A trust-first, peer-to-peer marketplace for buying, selling, and trading used bo
   - Image gallery with navigation
 
 - **Marketplace Features**
-
   - Responsive grid layout
   - Mobile-optimized UI
   - Seller information display
@@ -83,7 +79,6 @@ A trust-first, peer-to-peer marketplace for buying, selling, and trading used bo
    ```
 
 4. **Set up the database**
-
    - Run the SQL schema in your Supabase project
    - Configure RLS policies as needed
 

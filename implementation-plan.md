@@ -261,21 +261,21 @@ const OmnivaSelector = () => {
 // Design tokens implementation
 const theme = {
   colors: {
-    ivoryMist: "#E6EAD7",
-    sunEmber: "#D95323",
-    goldenBeam: "#F2C94C",
-    forestDeep: "#29432B",
+    ivoryMist: '#E6EAD7',
+    sunEmber: '#D95323',
+    goldenBeam: '#F2C94C',
+    forestDeep: '#29432B',
   },
   spacing: {
-    xs: "4px",
-    sm: "8px",
-    md: "16px",
-    lg: "24px",
-    xl: "32px",
+    xs: '4px',
+    sm: '8px',
+    md: '16px',
+    lg: '24px',
+    xl: '32px',
   },
   borderRadius: {
-    base: "16px",
-    button: "12px",
+    base: '16px',
+    button: '12px',
   },
 };
 ```
@@ -365,14 +365,12 @@ const theme = {
 ## 🎯 Next Steps
 
 1. **Immediate Actions (Week 0)**
-
    - [ ] Set up development environment
    - [ ] Initialize Next.js project
    - [ ] Configure Supabase and Clerk
    - [ ] Set up design system foundation
 
 2. **Week 1 Priorities**
-
    - [ ] Database schema implementation
    - [ ] Authentication system setup
    - [ ] Multi-language routing

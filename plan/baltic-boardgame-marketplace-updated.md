@@ -935,7 +935,6 @@ const OmnivaSelector = () => {
 ## Implementation Notes for Cursor
 
 1. **Use Cursor's AI features for:**
-
    - Multi-language content generation
    - GDPR-compliant code templates
    - Real-time features with WebSockets
@@ -943,7 +942,6 @@ const OmnivaSelector = () => {
    - SEO meta tag generation
 
 2. **Leverage Cursor's templates for:**
-
    - Authentication flows
    - Payment integration
    - Admin dashboards

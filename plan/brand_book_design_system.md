@@ -101,7 +101,7 @@
   --color-accent: #f2c94c;
   --color-cta: #d95323;
   --radius-base: 16px;
-  --font-primary: "Geist", sans-serif;
-  --font-display: "Adumu", display;
+  --font-primary: 'Geist', sans-serif;
+  --font-display: 'Adumu', display;
 }
 ```

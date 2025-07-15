@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
-import { supabase } from '@/lib/supabase'
+import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
+import { supabase } from '@/lib/supabase';
 
 // GET - Get a single listing
 export async function GET(
@@ -10,7 +10,8 @@ export async function GET(
   try {
     const { data: listing, error } = await supabase
       .from('listings')
-      .select(`
+      .select(
+        `
         *,
         users!listings_seller_id_fkey (
           id,
@@ -20,17 +21,21 @@ export async function GET(
         games!listings_game_id_fkey (
           title
         )
-      `)
+      `
+      )
       .eq('id', params.id)
-      .single()
+      .single();
 
     if (error) {
-      return NextResponse.json({ error: 'Listing not found' }, { status: 404 })
+      return NextResponse.json({ error: 'Listing not found' }, { status: 404 });
     }
 
-    return NextResponse.json({ listing })
+    return NextResponse.json({ listing });
   } catch (error) {
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
   }
 }
 
@@ -40,9 +45,9 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { userId } = await auth()
+    const { userId } = await auth();
     if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Get user profile
@@ -50,10 +55,13 @@ export async function PUT(
       .from('users')
       .select('id')
       .eq('clerk_id', userId)
-      .single()
+      .single();
 
     if (!profile) {
-      return NextResponse.json({ error: 'User profile not found' }, { status: 404 })
+      return NextResponse.json(
+        { error: 'User profile not found' },
+        { status: 404 }
+      );
     }
 
     // Check if listing exists and user owns it
@@ -61,17 +69,17 @@ export async function PUT(
       .from('listings')
       .select('seller_id, listing_type')
       .eq('id', params.id)
-      .single()
+      .single();
 
     if (fetchError || !existingListing) {
-      return NextResponse.json({ error: 'Listing not found' }, { status: 404 })
+      return NextResponse.json({ error: 'Listing not found' }, { status: 404 });
     }
 
     if (existingListing.seller_id !== profile.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
-    const body = await request.json()
+    const body = await request.json();
     const {
       price,
       currency,
@@ -80,8 +88,8 @@ export async function PUT(
       location_city,
       shipping_options,
       description,
-      photos
-    } = body
+      photos,
+    } = body;
 
     // Update listing
     const { data: updatedListing, error: updateError } = await supabase
@@ -95,19 +103,25 @@ export async function PUT(
         shipping_options,
         description,
         photos,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       })
       .eq('id', params.id)
       .select()
-      .single()
+      .single();
 
     if (updateError) {
-      return NextResponse.json({ error: 'Failed to update listing' }, { status: 500 })
+      return NextResponse.json(
+        { error: 'Failed to update listing' },
+        { status: 500 }
+      );
     }
 
-    return NextResponse.json({ listing: updatedListing })
+    return NextResponse.json({ listing: updatedListing });
   } catch (error) {
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
   }
 }
 
@@ -117,9 +131,9 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { userId } = await auth()
+    const { userId } = await auth();
     if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Get user profile
@@ -127,10 +141,13 @@ export async function DELETE(
       .from('users')
       .select('id')
       .eq('clerk_id', userId)
-      .single()
+      .single();
 
     if (!profile) {
-      return NextResponse.json({ error: 'User profile not found' }, { status: 404 })
+      return NextResponse.json(
+        { error: 'User profile not found' },
+        { status: 404 }
+      );
     }
 
     // Check if listing exists and user owns it
@@ -138,14 +155,14 @@ export async function DELETE(
       .from('listings')
       .select('seller_id, listing_type')
       .eq('id', params.id)
-      .single()
+      .single();
 
     if (fetchError || !existingListing) {
-      return NextResponse.json({ error: 'Listing not found' }, { status: 404 })
+      return NextResponse.json({ error: 'Listing not found' }, { status: 404 });
     }
 
     if (existingListing.seller_id !== profile.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
     // If it's an auction, check if it has active bids
@@ -154,12 +171,15 @@ export async function DELETE(
         .from('auctions')
         .select('status, bid_count')
         .eq('listing_id', params.id)
-        .single()
+        .single();
 
       if (!auctionError && auction && auction.bid_count > 0) {
-        return NextResponse.json({ 
-          error: 'Cannot delete auction with active bids' 
-        }, { status: 400 })
+        return NextResponse.json(
+          {
+            error: 'Cannot delete auction with active bids',
+          },
+          { status: 400 }
+        );
       }
     }
 
@@ -167,14 +187,20 @@ export async function DELETE(
     const { error: deleteError } = await supabase
       .from('listings')
       .delete()
-      .eq('id', params.id)
+      .eq('id', params.id);
 
     if (deleteError) {
-      return NextResponse.json({ error: 'Failed to delete listing' }, { status: 500 })
+      return NextResponse.json(
+        { error: 'Failed to delete listing' },
+        { status: 500 }
+      );
     }
 
-    return NextResponse.json({ success: true })
+    return NextResponse.json({ success: true });
   } catch (error) {
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
   }
-} 
+}

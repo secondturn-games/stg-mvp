@@ -1,17 +1,26 @@
-import React from 'react'
-import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
-import { ClerkProvider } from '@clerk/nextjs'
-import './globals.css'
-import SkipToContent from '@/components/ui/SkipToContent'
-import ToastProvider from '@/components/ui/ToastProvider'
+import React from 'react';
+import type { Metadata } from 'next';
+import { Inter } from 'next/font/google';
+import { ClerkProvider } from '@clerk/nextjs';
+import './globals.css';
+import SkipToContent from '@/components/ui/SkipToContent';
+import ToastProvider from '@/components/ui/ToastProvider';
 
-const inter = Inter({ subsets: ['latin'] })
+const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: 'Second Turn - Baltic Boardgame Marketplace',
-  description: 'A trust-first, peer-to-peer marketplace for buying, selling, and trading used board games in Estonia, Latvia, and Lithuania.',
-  keywords: ['boardgames', 'marketplace', 'baltic', 'estonia', 'latvia', 'lithuania', 'trading'],
+  description:
+    'A trust-first, peer-to-peer marketplace for buying, selling, and trading used board games in Estonia, Latvia, and Lithuania.',
+  keywords: [
+    'boardgames',
+    'marketplace',
+    'baltic',
+    'estonia',
+    'latvia',
+    'lithuania',
+    'trading',
+  ],
   authors: [{ name: 'Aigars Grēniņš' }],
   creator: 'Second Turn Games',
   publisher: 'Second Turn Games',
@@ -55,33 +64,37 @@ export const metadata: Metadata = {
       { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
     ],
   },
-}
+};
 
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
   return (
     <ClerkProvider>
-      <html lang="en" suppressHydrationWarning>
+      <html lang='en' suppressHydrationWarning>
         <head>
-          <link rel="preconnect" href="https://fonts.googleapis.com" />
-          <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-          <link 
-            href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" 
-            rel="stylesheet" 
+          <link rel='preconnect' href='https://fonts.googleapis.com' />
+          <link
+            rel='preconnect'
+            href='https://fonts.gstatic.com'
+            crossOrigin='anonymous'
+          />
+          <link
+            href='https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap'
+            rel='stylesheet'
           />
         </head>
         <body className={inter.className}>
           <SkipToContent />
           <ToastProvider>
-            <div className="min-h-screen bg-background" id="main-content">
+            <div className='min-h-screen bg-background' id='main-content'>
               {children}
             </div>
           </ToastProvider>
         </body>
       </html>
     </ClerkProvider>
-  )
-} 
+  );
+}

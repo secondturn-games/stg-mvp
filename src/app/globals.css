@@ -3,13 +3,13 @@
 @tailwind utilities;
 
 /* Regional Settings - Baltic 24-hour format */
-input[type="datetime-local"] {
+input[type='datetime-local'] {
   /* Force 24-hour format display */
   font-family: 'Courier New', monospace;
 }
 
 /* Ensure consistent time format display */
-input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+input[type='datetime-local']::-webkit-calendar-picker-indicator {
   background-color: transparent;
 }
 
@@ -20,18 +20,18 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
 
 /* Baltic-specific styling */
 .baltic-locale {
-  font-feature-settings: "tnum" 1;
+  font-feature-settings: 'tnum' 1;
 }
 
 /* Ensure proper date/time input styling */
-input[type="date"],
-input[type="time"],
-input[type="datetime-local"] {
+input[type='date'],
+input[type='time'],
+input[type='datetime-local'] {
   @apply regional-number baltic-locale;
 }
 
 /* Force date format to YYYY-MM-DD */
-input[type="date"] {
+input[type='date'] {
   font-family: 'Courier New', monospace;
 }
 
@@ -41,12 +41,12 @@ input[type="date"] {
 }
 
 /* Ensure consistent date display */
-input[type="date"]::-webkit-calendar-picker-indicator {
+input[type='date']::-webkit-calendar-picker-indicator {
   background-color: transparent;
 }
 
 /* Time input specific styling */
-input[type="text"][pattern*="[0-9]"] {
+input[type='text'][pattern*='[0-9]'] {
   font-family: 'Courier New', monospace;
   font-variant-numeric: tabular-nums;
 }
@@ -100,8 +100,8 @@ input[type="text"][pattern*="[0-9]"] {
     --color-accent: #f2c94c;
     --color-cta: #d95323;
     --radius-base: 16px;
-    --font-primary: "Geist", sans-serif;
-    --font-display: "Adumu", display;
+    --font-primary: 'Geist', sans-serif;
+    --font-display: 'Adumu', display;
   }
 
   .dark {
@@ -133,7 +133,9 @@ input[type="text"][pattern*="[0-9]"] {
   }
   body {
     @apply bg-background text-foreground;
-    font-feature-settings: "rlig" 1, "calt" 1;
+    font-feature-settings:
+      'rlig' 1,
+      'calt' 1;
   }
 }
 
@@ -141,28 +143,28 @@ input[type="text"][pattern*="[0-9]"] {
   .btn-primary {
     @apply bg-sunEmber text-ivory hover:bg-sunEmber/90 rounded-button px-4 py-2 font-medium transition-colors;
   }
-  
+
   .btn-secondary {
     @apply bg-goldenBeam text-forestDeep hover:bg-goldenBeam/90 rounded-button px-4 py-2 font-medium transition-colors;
   }
-  
+
   .btn-ghost {
     @apply text-forestDeep hover:bg-forestDeep/10 rounded-button px-4 py-2 font-medium transition-colors;
   }
-  
+
   .card {
     @apply bg-white dark:bg-forestDeep rounded-base shadow-sm border border-border;
   }
-  
+
   .container-mobile {
     @apply max-w-sm mx-auto px-4;
   }
-  
+
   .container-tablet {
     @apply max-w-2xl mx-auto px-6;
   }
-  
+
   .container-desktop {
     @apply max-w-7xl mx-auto px-8;
   }
-} 
+}

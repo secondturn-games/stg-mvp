@@ -1,0 +1,19 @@
+{
+  "extends": ["next/core-web-vitals"],
+  "rules": {
+    // Essential code quality rules
+    "no-console": "warn",
+    "no-debugger": "error",
+    "no-unused-vars": "warn",
+    "prefer-const": "warn",
+    "no-var": "error",
+
+    // React specific rules
+    "react/jsx-key": "error",
+    "react/jsx-no-duplicate-props": "error",
+    "react/jsx-no-undef": "error",
+    "react/no-array-index-key": "warn",
+    "react/no-danger": "warn",
+    "react/self-closing-comp": "error"
+  }
+}
