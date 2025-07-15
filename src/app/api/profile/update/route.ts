@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { updateUserProfile } from '@/lib/user-service';
 
-export async function POST(request: NextRequest) {
+// Force dynamic rendering for this API route
+export const dynamic = 'force-dynamic';
+
+export async function PUT(request: NextRequest) {
   try {
     const { userId } = await auth();
 
