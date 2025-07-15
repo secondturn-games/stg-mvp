@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase'
-import MarketplaceListings from '@/components/marketplace/MarketplaceListings'
+import MarketplaceWithSearch from '@/components/marketplace/MarketplaceWithSearch'
 
 export default async function MarketplacePage() {
   // Get all active listings with seller information
@@ -31,14 +31,17 @@ export default async function MarketplacePage() {
             {listings?.length || 0} active listings
           </div>
           <div className="flex gap-2">
-            <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+            <a 
+              href="/listings/create"
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+            >
               Create Listing
-            </button>
+            </a>
           </div>
         </div>
       </div>
 
-      <MarketplaceListings listings={listings || []} />
+      <MarketplaceWithSearch listings={listings || []} />
     </div>
   )
 } 

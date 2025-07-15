@@ -91,7 +91,7 @@ export default function MarketplaceListings({ listings }: MarketplaceListingsPro
       {listings.map((listing) => (
         <div 
           key={listing.id} 
-          className="bg-white rounded-lg shadow-md border hover:shadow-lg transition-shadow cursor-pointer"
+          className="bg-white rounded-lg shadow-md border hover:shadow-lg transition-shadow cursor-pointer group"
           onClick={() => router.push(`/listings/${listing.id}`)}
         >
           {/* Game Image */}
@@ -144,15 +144,20 @@ export default function MarketplaceListings({ listings }: MarketplaceListingsPro
 
             {/* Seller Info */}
             <div className="mt-3 pt-3 border-t border-gray-100">
-              <div className="flex items-center">
-                <div className="w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center mr-2">
-                  <span className="text-xs text-gray-500">
-                    {listing.users.username?.charAt(0).toUpperCase() || '?'}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <div className="w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center mr-2">
+                    <span className="text-xs text-gray-500">
+                      {listing.users.username?.charAt(0).toUpperCase() || '?'}
+                    </span>
+                  </div>
+                  <span className="text-sm text-gray-600">
+                    {listing.users.username || 'Anonymous'}
                   </span>
                 </div>
-                <span className="text-sm text-gray-600">
-                  {listing.users.username || 'Anonymous'}
-                </span>
+                <div className="text-xs text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                  View Details →
+                </div>
               </div>
             </div>
           </div>
