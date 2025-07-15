@@ -16,6 +16,24 @@ async function MarketplaceContent() {
     .eq('status', 'active')
     .order('created_at', { ascending: false })
 
+  // Get active auctions
+  const { data: auctions, error: auctionError } = await supabase
+    .from('auctions')
+    .select(`
+      *,
+      listings!auctions_listing_id_fkey (
+        *,
+        users!listings_seller_id_fkey (
+          username
+        ),
+        games!listings_game_id_fkey (
+          title
+        )
+      )
+    `)
+    .eq('status', 'active')
+    .order('end_time', { ascending: true })
+
   if (error) {
     console.error('Error fetching listings:', error)
     return (
@@ -50,7 +68,7 @@ async function MarketplaceContent() {
         </div>
       </div>
 
-      <MarketplaceWithSearch listings={listings || []} />
+      <MarketplaceWithSearch listings={listings || []} auctions={auctions || []} />
     </div>
   )
 }

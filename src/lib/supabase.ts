@@ -138,6 +138,82 @@ export interface Database {
           created_at?: string
         }
       }
+      auctions: {
+        Row: {
+          id: string
+          listing_id: string
+          starting_price: number
+          current_price: number
+          reserve_price: number | null
+          bid_increment: number
+          end_time: string
+          extension_time: number
+          buy_now_price: number | null
+          status: 'active' | 'ended' | 'cancelled' | 'reserved'
+          winner_id: string | null
+          minimum_bid: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          listing_id: string
+          starting_price: number
+          current_price: number
+          reserve_price?: number | null
+          bid_increment?: number
+          end_time: string
+          extension_time?: number
+          buy_now_price?: number | null
+          status?: 'active' | 'ended' | 'cancelled' | 'reserved'
+          winner_id?: string | null
+          minimum_bid?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          listing_id?: string
+          starting_price?: number
+          current_price?: number
+          reserve_price?: number | null
+          bid_increment?: number
+          end_time?: string
+          extension_time?: number
+          buy_now_price?: number | null
+          status?: 'active' | 'ended' | 'cancelled' | 'reserved'
+          winner_id?: string | null
+          minimum_bid?: number
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      bids: {
+        Row: {
+          id: string
+          auction_id: string
+          bidder_id: string
+          amount: number
+          is_proxy: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          auction_id: string
+          bidder_id: string
+          amount: number
+          is_proxy?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          auction_id?: string
+          bidder_id?: string
+          amount?: number
+          is_proxy?: boolean
+          created_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never

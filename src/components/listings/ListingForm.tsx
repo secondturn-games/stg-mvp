@@ -19,6 +19,12 @@ interface ListingFormData {
     dpd: boolean
     pickup: boolean
   }
+  // Auction-specific fields
+  startingPrice: string
+  endTime: string
+  reservePrice: string
+  buyNowPrice: string
+  bidIncrement: string
 }
 
 export default function ListingForm() {
@@ -37,7 +43,13 @@ export default function ListingForm() {
       omniva: true,
       dpd: true,
       pickup: true
-    }
+    },
+    // Auction-specific fields
+    startingPrice: '',
+    endTime: '',
+    reservePrice: '',
+    buyNowPrice: '',
+    bidIncrement: '1.00'
   })
   const [isLoading, setIsLoading] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
@@ -149,7 +161,7 @@ export default function ListingForm() {
           </select>
         </div>
 
-        {formData.listingType !== 'trade' && (
+        {formData.listingType === 'fixed' && (
           <div>
             <label htmlFor="price" className="block text-sm font-medium text-gray-700 mb-2">
               Price (EUR) *
@@ -166,6 +178,110 @@ export default function ListingForm() {
               placeholder="25.00"
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
+          </div>
+        )}
+
+        {formData.listingType === 'auction' && (
+          <div className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <label htmlFor="startingPrice" className="block text-sm font-medium text-gray-700 mb-2">
+                  Starting Price (EUR) *
+                </label>
+                <input
+                  type="number"
+                  id="startingPrice"
+                  name="startingPrice"
+                  value={formData.startingPrice}
+                  onChange={handleChange}
+                  required
+                  min="0"
+                  step="0.01"
+                  placeholder="10.00"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="endTime" className="block text-sm font-medium text-gray-700 mb-2">
+                  End Time *
+                </label>
+                <input
+                  type="datetime-local"
+                  id="endTime"
+                  name="endTime"
+                  value={formData.endTime}
+                  onChange={handleChange}
+                  required
+                  min={new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 16)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-3">
+              <div>
+                <label htmlFor="reservePrice" className="block text-sm font-medium text-gray-700 mb-2">
+                  Reserve Price (EUR)
+                </label>
+                <input
+                  type="number"
+                  id="reservePrice"
+                  name="reservePrice"
+                  value={formData.reservePrice}
+                  onChange={handleChange}
+                  min="0"
+                  step="0.01"
+                  placeholder="Optional"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="buyNowPrice" className="block text-sm font-medium text-gray-700 mb-2">
+                  Buy Now Price (EUR)
+                </label>
+                <input
+                  type="number"
+                  id="buyNowPrice"
+                  name="buyNowPrice"
+                  value={formData.buyNowPrice}
+                  onChange={handleChange}
+                  min="0"
+                  step="0.01"
+                  placeholder="Optional"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="bidIncrement" className="block text-sm font-medium text-gray-700 mb-2">
+                  Minimum Bid Increment (EUR)
+                </label>
+                <input
+                  type="number"
+                  id="bidIncrement"
+                  name="bidIncrement"
+                  value={formData.bidIncrement}
+                  onChange={handleChange}
+                  required
+                  min="0.01"
+                  step="0.01"
+                  placeholder="1.00"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+            </div>
+
+            <div className="p-4 bg-blue-50 rounded-lg">
+              <h4 className="text-sm font-medium text-blue-800 mb-2">Auction Tips:</h4>
+              <ul className="text-sm text-blue-700 space-y-1">
+                <li>• Set a reasonable starting price to attract bidders</li>
+                <li>• Reserve price is optional but protects your minimum price</li>
+                <li>• Buy Now price allows instant purchase</li>
+                <li>• Auctions automatically extend if bids are placed near the end</li>
+              </ul>
+            </div>
           </div>
         )}
       </div>
