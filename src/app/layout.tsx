@@ -2,6 +2,8 @@ import React from 'react';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import { ClerkProvider } from '@clerk/nextjs';
+import { Analytics } from '@vercel/analytics/react';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 import './globals.css';
 import SkipToContent from '@/components/ui/SkipToContent';
 import ToastProvider from '@/components/ui/ToastProvider';
@@ -93,6 +95,8 @@ export default function RootLayout({
               {children}
             </div>
           </ToastProvider>
+          <Analytics />
+          <SpeedInsights />
         </body>
       </html>
     </ClerkProvider>
