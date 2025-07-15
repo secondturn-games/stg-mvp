@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation'
 import EmptyState from '@/components/ui/EmptyState'
 import OptimizedImage from '@/components/ui/OptimizedImage'
+import { formatCurrency, formatRelativeTime, getUserLocale } from '@/lib/regional-settings'
 
 interface Listing {
   id: string
@@ -26,6 +27,7 @@ interface MarketplaceListingsProps {
 
 export default function MarketplaceListings({ listings }: MarketplaceListingsProps) {
   const router = useRouter()
+  const locale = getUserLocale()
 
   const getConditionLabel = (condition: string) => {
     switch (condition) {
@@ -59,24 +61,11 @@ export default function MarketplaceListings({ listings }: MarketplaceListingsPro
 
   const formatPrice = (price: number | null, currency: string) => {
     if (price === null) return 'Trade'
-    return `${currency} ${price.toFixed(2)}`
+    return formatCurrency(price, locale)
   }
 
   const getTimeAgo = (dateString: string) => {
-    const date = new Date(dateString)
-    const now = new Date()
-    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60))
-    
-    if (diffInHours < 1) return 'Just now'
-    if (diffInHours < 24) return `${diffInHours}h ago`
-    
-    const diffInDays = Math.floor(diffInHours / 24)
-    if (diffInDays < 7) return `${diffInDays}d ago`
-    
-    const diffInWeeks = Math.floor(diffInDays / 7)
-    if (diffInWeeks < 4) return `${diffInWeeks}w ago`
-    
-    return date.toLocaleDateString()
+    return formatRelativeTime(dateString, locale)
   }
 
   if (listings.length === 0) {

@@ -11,6 +11,7 @@ import {
   Share2,
   ArrowLeft
 } from 'lucide-react'
+import { formatCurrency, formatRelativeTime, getUserLocale } from '@/lib/regional-settings'
 
 interface Listing {
   id: string
@@ -35,6 +36,9 @@ interface Listing {
     email: string
     country: string
   }
+  // Optional formatted fields from server
+  formattedPrice?: string
+  formattedCreatedAt?: string
 }
 
 interface ListingDetailProps {
@@ -45,6 +49,7 @@ export default function ListingDetail({ listing }: ListingDetailProps) {
   const router = useRouter()
   const [selectedImage, setSelectedImage] = useState(0)
   const [isContactOpen, setIsContactOpen] = useState(false)
+  const locale = getUserLocale()
 
   const gameTitle = listing.description?.en?.split(' - ')[0] || 'Untitled Game'
   const description = listing.description?.en?.split(' - ').slice(1).join(' - ') || ''
@@ -81,24 +86,11 @@ export default function ListingDetail({ listing }: ListingDetailProps) {
 
   const formatPrice = (price: number | null, currency: string) => {
     if (price === null) return 'Trade Only'
-    return `${currency} ${price.toFixed(2)}`
+    return formatCurrency(price, locale)
   }
 
   const getTimeAgo = (dateString: string) => {
-    const date = new Date(dateString)
-    const now = new Date()
-    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60))
-    
-    if (diffInHours < 1) return 'Just now'
-    if (diffInHours < 24) return `${diffInHours}h ago`
-    
-    const diffInDays = Math.floor(diffInHours / 24)
-    if (diffInDays < 7) return `${diffInDays}d ago`
-    
-    const diffInWeeks = Math.floor(diffInDays / 7)
-    if (diffInWeeks < 4) return `${diffInWeeks}w ago`
-    
-    return date.toLocaleDateString()
+    return formatRelativeTime(dateString, locale)
   }
 
   return (

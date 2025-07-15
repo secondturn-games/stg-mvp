@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import OptimizedImage from '@/components/ui/OptimizedImage'
+import { formatCurrency, formatAuctionTimeLeft, getUserLocale } from '@/lib/regional-settings'
 
 interface Auction {
   id: string
@@ -50,32 +51,12 @@ interface AuctionCardProps {
 export default function AuctionCard({ auction }: AuctionCardProps) {
   const router = useRouter()
   const [timeLeft, setTimeLeft] = useState('')
+  const locale = getUserLocale()
 
   // Calculate time left
   useEffect(() => {
     const updateTimeLeft = () => {
-      const now = new Date().getTime()
-      const endTime = new Date(auction.end_time).getTime()
-      const timeRemaining = endTime - now
-
-      if (timeRemaining <= 0) {
-        setTimeLeft('Ended')
-        return
-      }
-
-      const days = Math.floor(timeRemaining / (1000 * 60 * 60 * 24))
-      const hours = Math.floor((timeRemaining % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
-      const minutes = Math.floor((timeRemaining % (1000 * 60 * 60)) / (1000 * 60))
-
-      if (days > 0) {
-        setTimeLeft(`${days}d ${hours}h`)
-      } else if (hours > 0) {
-        setTimeLeft(`${hours}h ${minutes}m`)
-      } else if (minutes > 0) {
-        setTimeLeft(`${minutes}m`)
-      } else {
-        setTimeLeft('Ending soon')
-      }
+      setTimeLeft(formatAuctionTimeLeft(auction.end_time))
     }
 
     updateTimeLeft()
@@ -96,7 +77,7 @@ export default function AuctionCard({ auction }: AuctionCardProps) {
   }
 
   const formatPrice = (price: number) => {
-    return `€${price.toFixed(2)}`
+    return formatCurrency(price, locale)
   }
 
   const isEndingSoon = () => {
@@ -108,7 +89,7 @@ export default function AuctionCard({ auction }: AuctionCardProps) {
 
   return (
     <div 
-      className="bg-white rounded-lg shadow-md border hover:shadow-lg transition-shadow cursor-pointer group"
+      className="bg-white rounded-lg shadow-md border hover:shadow-lg transition-shadow cursor-pointer group relative"
       onClick={() => router.push(`/auctions/${auction.id}`)}
     >
       {/* Game Image */}

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import ImageUpload from './ImageUpload'
+import { getUserLocale } from '@/lib/regional-settings'
 
 interface ListingFormData {
   gameTitle: string
@@ -29,6 +30,8 @@ interface ListingFormData {
 
 export default function ListingForm() {
   const router = useRouter()
+  const locale = getUserLocale()
+  
   const [formData, setFormData] = useState<ListingFormData>({
     gameTitle: '',
     gameId: null,
@@ -53,6 +56,13 @@ export default function ListingForm() {
   })
   const [isLoading, setIsLoading] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+
+  // Get minimum date for auction end time (24 hours from now)
+  const getMinDate = () => {
+    const now = new Date()
+    now.setHours(now.getHours() + 24) // Minimum 24 hours from now
+    return now.toISOString().slice(0, 16) // Format: YYYY-MM-DDTHH:MM
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -204,7 +214,7 @@ export default function ListingForm() {
 
               <div>
                 <label htmlFor="endTime" className="block text-sm font-medium text-gray-700 mb-2">
-                  End Time *
+                  End Time (24h format) *
                 </label>
                 <input
                   type="datetime-local"
@@ -213,9 +223,12 @@ export default function ListingForm() {
                   value={formData.endTime}
                   onChange={handleChange}
                   required
-                  min={new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 16)}
+                  min={getMinDate()}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  Minimum 24 hours from now. Auctions automatically extend if bids are placed near the end.
+                </p>
               </div>
             </div>
 
@@ -280,6 +293,7 @@ export default function ListingForm() {
                 <li>• Reserve price is optional but protects your minimum price</li>
                 <li>• Buy Now price allows instant purchase</li>
                 <li>• Auctions automatically extend if bids are placed near the end</li>
+                <li>• All times are in 24-hour format (Baltic standard)</li>
               </ul>
             </div>
           </div>

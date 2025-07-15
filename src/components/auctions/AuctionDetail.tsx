@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase'
 import OptimizedImage from '@/components/ui/OptimizedImage'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import { useToast } from '@/components/ui/ToastProvider'
+import { formatCurrency, formatRelativeTime, formatAuctionTimeLeft, getUserLocale } from '@/lib/regional-settings'
 
 interface Bid {
   id: string
@@ -69,6 +70,7 @@ export default function AuctionDetail({ auction, bids: initialBids }: AuctionDet
   const { userId } = useAuth()
   const router = useRouter()
   const { showToast } = useToast()
+  const locale = getUserLocale()
   
   const [bids, setBids] = useState<Bid[]>(initialBids)
   const [bidAmount, setBidAmount] = useState('')
@@ -84,29 +86,12 @@ export default function AuctionDetail({ auction, bids: initialBids }: AuctionDet
         return
       }
 
+      setTimeLeft(formatAuctionTimeLeft(auction.end_time))
+      
       const now = new Date().getTime()
       const endTime = new Date(auction.end_time).getTime()
-      const timeRemaining = endTime - now
-
-      if (timeRemaining <= 0) {
-        setTimeLeft('Auction ended')
+      if (endTime <= now) {
         setIsAuctionActive(false)
-        return
-      }
-
-      const days = Math.floor(timeRemaining / (1000 * 60 * 60 * 24))
-      const hours = Math.floor((timeRemaining % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
-      const minutes = Math.floor((timeRemaining % (1000 * 60 * 60)) / (1000 * 60))
-      const seconds = Math.floor((timeRemaining % (1000 * 60)) / 1000)
-
-      if (days > 0) {
-        setTimeLeft(`${days}d ${hours}h ${minutes}m`)
-      } else if (hours > 0) {
-        setTimeLeft(`${hours}h ${minutes}m ${seconds}s`)
-      } else if (minutes > 0) {
-        setTimeLeft(`${minutes}m ${seconds}s`)
-      } else {
-        setTimeLeft(`${seconds}s`)
       }
     }
 
@@ -235,22 +220,11 @@ export default function AuctionDetail({ auction, bids: initialBids }: AuctionDet
   }
 
   const formatPrice = (price: number) => {
-    return `€${price.toFixed(2)}`
+    return formatCurrency(price, locale)
   }
 
   const getTimeAgo = (dateString: string) => {
-    const date = new Date(dateString)
-    const now = new Date()
-    const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60))
-    
-    if (diffInMinutes < 1) return 'Just now'
-    if (diffInMinutes < 60) return `${diffInMinutes}m ago`
-    
-    const diffInHours = Math.floor(diffInMinutes / 60)
-    if (diffInHours < 24) return `${diffInHours}h ago`
-    
-    const diffInDays = Math.floor(diffInHours / 24)
-    return `${diffInDays}d ago`
+    return formatRelativeTime(dateString, locale)
   }
 
   return (

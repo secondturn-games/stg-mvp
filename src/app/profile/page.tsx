@@ -1,88 +1,180 @@
-import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
-import { getCurrentUserProfile, getUserStats } from '@/lib/user-service'
-import ProfileForm from '@/components/profile/ProfileForm'
-import UserStats from '@/components/profile/UserStats'
+import { auth } from '@clerk/nextjs/server'
+import { supabase } from '@/lib/supabase'
+import ProfileStats from '@/components/profile/ProfileStats'
+import ProfileActions from '@/components/profile/ProfileActions'
+import { formatCurrency, formatRelativeTime, getUserLocale } from '@/lib/regional-settings'
 
 export default async function ProfilePage() {
   const { userId } = await auth()
-
+  
   if (!userId) {
     redirect('/sign-in')
   }
 
-  const profile = await getCurrentUserProfile()
-  const stats = profile ? await getUserStats(profile.id) : null
+  // Get user profile
+  const { data: profile, error: profileError } = await supabase
+    .from('users')
+    .select('*')
+    .eq('clerk_id', userId)
+    .single()
 
-  if (!profile) {
-    return (
-      <div className="container mx-auto p-8">
-        <h1 className="text-2xl font-bold text-red-600 mb-4">Profile Not Found</h1>
-        <p className="text-gray-600 mb-4">
-          Your profile hasn't been created yet. Please complete your profile setup.
-        </p>
-        <a 
-          href="/profile/setup" 
-          className="inline-block bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          Set Up Profile
-        </a>
-      </div>
-    )
+  if (profileError && profileError.code !== 'PGRST116') {
+    console.error('Error fetching profile:', profileError)
   }
 
-  return (
-    <div className="container mx-auto p-8 max-w-4xl">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Profile</h1>
-        <p className="text-gray-600">Manage your account and preferences</p>
-      </div>
+  // Get user's listings
+  const { data: listings, error: listingsError } = await supabase
+    .from('listings')
+    .select('*')
+    .eq('seller_id', userId)
+    .order('created_at', { ascending: false })
 
-      <div className="grid gap-8 lg:grid-cols-3">
-        {/* Profile Form */}
-        <div className="lg:col-span-2">
-          <div className="bg-white rounded-lg shadow border p-6">
-            <h2 className="text-xl font-semibold mb-4">Profile Information</h2>
-            <ProfileForm profile={profile} />
+  if (listingsError) {
+    console.error('Error fetching listings:', listingsError)
+  }
+
+  // Get user's purchases
+  const { data: purchases, error: purchasesError } = await supabase
+    .from('transactions')
+    .select(`
+      *,
+      listings (
+        id,
+        description,
+        photos
+      )
+    `)
+    .eq('buyer_id', userId)
+    .order('created_at', { ascending: false })
+
+  if (purchasesError) {
+    console.error('Error fetching purchases:', purchasesError)
+  }
+
+  // Format data with regional settings
+  const locale = getUserLocale()
+  const formattedListings = listings?.map(listing => ({
+    ...listing,
+    formattedPrice: listing.price ? formatCurrency(listing.price, locale) : 'Trade',
+    formattedCreatedAt: formatRelativeTime(listing.created_at, locale)
+  })) || []
+
+  const formattedPurchases = purchases?.map(purchase => ({
+    ...purchase,
+    formattedAmount: formatCurrency(purchase.amount, locale),
+    formattedCreatedAt: formatRelativeTime(purchase.created_at, locale)
+  })) || []
+
+  return (
+    <div className="container mx-auto px-4 py-8 max-w-6xl">
+      <div className="space-y-8">
+        {/* Profile Header */}
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="flex items-center space-x-4">
+            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
+              <span className="text-2xl font-bold text-blue-600">
+                {profile?.username?.charAt(0).toUpperCase() || 'U'}
+              </span>
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">
+                {profile?.username || 'Anonymous User'}
+              </h1>
+              <p className="text-gray-600">
+                Member since {profile?.created_at ? new Date(profile.created_at).getFullYear() : '2024'}
+              </p>
+              {profile?.location_city && (
+                <p className="text-sm text-gray-500">
+                  📍 {profile.location_city}
+                </p>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Stats Sidebar */}
-        <div className="space-y-6">
-          <UserStats stats={stats} />
-          
-          <div className="bg-white rounded-lg shadow border p-6">
-            <h3 className="text-lg font-semibold mb-4">Account Status</h3>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Verified Seller</span>
-                <span className={`px-2 py-1 rounded-full text-xs ${
-                  profile.verified_seller 
-                    ? 'bg-green-100 text-green-800' 
-                    : 'bg-yellow-100 text-yellow-800'
-                }`}>
-                  {profile.verified_seller ? 'Verified' : 'Pending'}
-                </span>
+        {/* Stats */}
+        <ProfileStats 
+          listingsCount={formattedListings.length}
+          purchasesCount={formattedPurchases.length}
+          totalSpent={formattedPurchases.reduce((sum, p) => sum + p.amount, 0)}
+        />
+
+        {/* Actions */}
+        <ProfileActions />
+
+        {/* Recent Activity */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* My Listings */}
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <h2 className="text-xl font-semibold mb-4">My Listings</h2>
+            {formattedListings.length === 0 ? (
+              <p className="text-gray-500 text-center py-8">
+                You haven't created any listings yet.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {formattedListings.slice(0, 5).map((listing) => (
+                  <div key={listing.id} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                    <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center">
+                      {listing.photos && listing.photos.length > 0 ? (
+                        <img 
+                          src={listing.photos[0]} 
+                          alt="Game" 
+                          className="w-full h-full object-cover rounded-lg"
+                        />
+                      ) : (
+                        <span className="text-lg">🎲</span>
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-medium text-sm">
+                        {listing.description?.en?.split(' - ')[0] || 'Untitled Game'}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {listing.formattedPrice} • {listing.formattedCreatedAt}
+                      </p>
+                    </div>
+                  </div>
+                ))}
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Bank Verified</span>
-                <span className={`px-2 py-1 rounded-full text-xs ${
-                  profile.bank_verified 
-                    ? 'bg-green-100 text-green-800' 
-                    : 'bg-gray-100 text-gray-800'
-                }`}>
-                  {profile.bank_verified ? 'Verified' : 'Not Verified'}
-                </span>
+            )}
+          </div>
+
+          {/* Recent Purchases */}
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <h2 className="text-xl font-semibold mb-4">Recent Purchases</h2>
+            {formattedPurchases.length === 0 ? (
+              <p className="text-gray-500 text-center py-8">
+                You haven't made any purchases yet.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {formattedPurchases.slice(0, 5).map((purchase) => (
+                  <div key={purchase.id} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                    <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center">
+                      {purchase.listings?.photos && purchase.listings.photos.length > 0 ? (
+                        <img 
+                          src={purchase.listings.photos[0]} 
+                          alt="Game" 
+                          className="w-full h-full object-cover rounded-lg"
+                        />
+                      ) : (
+                        <span className="text-lg">🎲</span>
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-medium text-sm">
+                        {purchase.listings?.description?.en?.split(' - ')[0] || 'Game'}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {purchase.formattedAmount} • {purchase.formattedCreatedAt}
+                      </p>
+                    </div>
+                  </div>
+                ))}
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Country</span>
-                <span className="text-sm font-medium">{profile.country}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Language</span>
-                <span className="text-sm font-medium">{profile.preferred_language.toUpperCase()}</span>
-              </div>
-            </div>
+            )}
           </div>
         </div>
       </div>
