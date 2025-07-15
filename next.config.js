@@ -1,8 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    appDir: true,
-  },
   images: {
     domains: ['cloudflare.com', 'images.unsplash.com'],
     formats: ['image/webp', 'image/avif'],
@@ -10,7 +7,7 @@ const nextConfig = {
   i18n: {
     locales: ['en', 'et', 'lv', 'lt'],
     defaultLocale: 'en',
-    localeDetection: true,
+    localeDetection: false,
   },
   async headers() {
     return [
