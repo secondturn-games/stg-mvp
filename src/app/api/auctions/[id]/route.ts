@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { supabase } from '@/lib/supabase';
 
+// Force dynamic rendering for this API route
+export const dynamic = 'force-dynamic';
+
 // GET - Get a single auction
 export async function GET(
   request: NextRequest,
