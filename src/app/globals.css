@@ -1,0 +1,101 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 15 69% 49%;
+    --primary-foreground: 60 9% 88%;
+    --secondary: 45 85% 62%;
+    --secondary-foreground: 120 15% 21%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 45 85% 62%;
+    --accent-foreground: 120 15% 21%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 15 69% 49%;
+    --radius: 0.5rem;
+
+    /* Custom brand colors */
+    --color-bg-light: #e6ead7;
+    --color-bg-dark: #29432b;
+    --color-text-primary-light: #29432b;
+    --color-text-primary-dark: #e6ead7;
+    --color-accent: #f2c94c;
+    --color-cta: #d95323;
+    --radius-base: 16px;
+    --font-primary: "Geist", sans-serif;
+    --font-display: "Adumu", display;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 15 69% 49%;
+    --primary-foreground: 60 9% 88%;
+    --secondary: 45 85% 62%;
+    --secondary-foreground: 120 15% 21%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 45 85% 62%;
+    --accent-foreground: 120 15% 21%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 15 69% 49%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-sunEmber text-ivory hover:bg-sunEmber/90 rounded-button px-4 py-2 font-medium transition-colors;
+  }
+  
+  .btn-secondary {
+    @apply bg-goldenBeam text-forestDeep hover:bg-goldenBeam/90 rounded-button px-4 py-2 font-medium transition-colors;
+  }
+  
+  .btn-ghost {
+    @apply text-forestDeep hover:bg-forestDeep/10 rounded-button px-4 py-2 font-medium transition-colors;
+  }
+  
+  .card {
+    @apply bg-white dark:bg-forestDeep rounded-base shadow-sm border border-border;
+  }
+  
+  .container-mobile {
+    @apply max-w-sm mx-auto px-4;
+  }
+  
+  .container-tablet {
+    @apply max-w-2xl mx-auto px-6;
+  }
+  
+  .container-desktop {
+    @apply max-w-7xl mx-auto px-8;
+  }
+} 
