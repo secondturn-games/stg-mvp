@@ -1,6 +1,8 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
+import EmptyState from '@/components/ui/EmptyState'
+import OptimizedImage from '@/components/ui/OptimizedImage'
 
 interface Listing {
   id: string
@@ -79,15 +81,20 @@ export default function MarketplaceListings({ listings }: MarketplaceListingsPro
 
   if (listings.length === 0) {
     return (
-      <div className="text-center py-12">
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">No Listings Available</h3>
-        <p className="text-gray-600">Be the first to create a listing!</p>
-      </div>
+      <EmptyState
+        title="No Listings Available"
+        description="Be the first to create a listing and start selling your board games!"
+        icon="🎲"
+        action={{
+          label: "Create Your First Listing",
+          href: "/listings/create"
+        }}
+      />
     )
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
       {listings.map((listing) => (
         <div 
           key={listing.id} 
@@ -95,17 +102,20 @@ export default function MarketplaceListings({ listings }: MarketplaceListingsPro
           onClick={() => router.push(`/listings/${listing.id}`)}
         >
           {/* Game Image */}
-          <div className="aspect-square bg-gray-100 rounded-t-lg flex items-center justify-center">
+          <div className="aspect-square bg-gray-100 rounded-t-lg overflow-hidden">
             {listing.photos && listing.photos.length > 0 ? (
-              <img 
+              <OptimizedImage 
                 src={listing.photos[0]} 
                 alt={listing.description?.en?.split(' - ')[0] || 'Game'}
-                className="w-full h-full object-cover rounded-t-lg"
+                className="w-full h-full rounded-t-lg"
+                fallback="🎲"
               />
             ) : (
-              <div className="text-gray-400 text-center p-4">
-                <div className="text-4xl mb-2">🎲</div>
-                <div className="text-sm">No Image</div>
+              <div className="text-gray-400 text-center p-4 flex items-center justify-center h-full">
+                <div className="text-center">
+                  <div className="text-4xl mb-2">🎲</div>
+                  <div className="text-sm">No Image</div>
+                </div>
               </div>
             )}
           </div>

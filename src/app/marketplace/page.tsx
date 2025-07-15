@@ -1,7 +1,9 @@
 import { supabase } from '@/lib/supabase'
 import MarketplaceWithSearch from '@/components/marketplace/MarketplaceWithSearch'
+import LoadingSpinner from '@/components/ui/LoadingSpinner'
+import { Suspense } from 'react'
 
-export default async function MarketplacePage() {
+async function MarketplaceContent() {
   // Get all active listings with seller information
   const { data: listings, error } = await supabase
     .from('listings')
@@ -16,6 +18,13 @@ export default async function MarketplacePage() {
 
   if (error) {
     console.error('Error fetching listings:', error)
+    return (
+      <div className="text-center py-12">
+        <div className="text-6xl mb-4">⚠️</div>
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">Error Loading Listings</h3>
+        <p className="text-gray-600">Please try refreshing the page.</p>
+      </div>
+    )
   }
 
   return (
@@ -43,5 +52,23 @@ export default async function MarketplacePage() {
 
       <MarketplaceWithSearch listings={listings || []} />
     </div>
+  )
+}
+
+export default function MarketplacePage() {
+  return (
+    <Suspense fallback={
+      <div className="container mx-auto p-8 max-w-7xl">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Marketplace</h1>
+          <p className="text-gray-600">Browse and discover board games from the Baltic region</p>
+        </div>
+        <div className="flex justify-center py-12">
+          <LoadingSpinner size="lg" />
+        </div>
+      </div>
+    }>
+      <MarketplaceContent />
+    </Suspense>
   )
 } 
