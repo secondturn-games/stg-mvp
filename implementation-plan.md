@@ -6,7 +6,7 @@
 **Timeline:** 20 weeks (5 months)  
 **Target Launch:** Week 20  
 **Tech Stack:** Next.js 14, Supabase, Clerk, Stripe Connect, Algolia, Cloudflare R2  
-**Status:** 🟡 Planning Phase
+**Status:** 🟢 Development Phase - Game Listings Complete
 
 ---
 
@@ -42,18 +42,19 @@
 
 #### 2.1 User Management
 
-- [ ] User registration and profile management
-- [ ] Seller verification system (3 levels)
-- [ ] User roles and permissions
-- [ ] Account settings with language preferences
+- [x] User registration and profile management
+- [x] Seller verification system (3 levels)
+- [x] User roles and permissions
+- [x] Account settings with language preferences
 
 #### 2.2 Game Database & Listings
 
-- [ ] Game database schema and API
-- [ ] Listing creation with image upload
-- [ ] Condition grading system
-- [ ] Location and shipping preferences
+- [x] Game database schema and API
+- [x] Listing creation with form validation
+- [x] Condition grading system
+- [x] Location and shipping preferences
 - [ ] BoardGamePrices.eu API integration
+- [ ] Image upload functionality
 
 #### 2.3 Search & Discovery
 
