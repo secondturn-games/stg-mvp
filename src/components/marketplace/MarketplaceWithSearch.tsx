@@ -14,12 +14,14 @@ interface Listing {
   currency: string
   condition: 'new' | 'like_new' | 'very_good' | 'good' | 'acceptable'
   location_city: string
-  location_country: string
   created_at: string
   description: Record<string, string>
   photos: string[]
   users: {
     username: string
+  }
+  games: {
+    title: Record<string, string>
   }
 }
 

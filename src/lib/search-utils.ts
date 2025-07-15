@@ -7,12 +7,14 @@ interface Listing {
   currency: string
   condition: 'new' | 'like_new' | 'very_good' | 'good' | 'acceptable'
   location_city: string
-  location_country: string
   created_at: string
   description: Record<string, string>
   photos: string[]
   users: {
     username: string
+  }
+  games: {
+    title: Record<string, string>
   }
 }
 
@@ -28,7 +30,7 @@ export function filterListings(
   if (search.trim()) {
     const searchLower = search.toLowerCase()
     filtered = filtered.filter(listing => {
-      const gameTitle = listing.description?.en?.split(' - ')[0] || ''
+      const gameTitle = listing.games?.title?.en || ''
       const description = listing.description?.en || ''
       return (
         gameTitle.toLowerCase().includes(searchLower) ||
@@ -47,7 +49,8 @@ export function filterListings(
   // Price range filter
   if (filters.priceRange.min > 0 || filters.priceRange.max < 1000) {
     filtered = filtered.filter(listing => {
-      if (listing.price === null) return false // Trade listings
+      // Include trade listings (price is null) in all price ranges
+      if (listing.price === null) return true
       return listing.price >= filters.priceRange.min && listing.price <= filters.priceRange.max
     })
   }

@@ -35,14 +35,38 @@ export async function POST(request: NextRequest) {
     }
 
     // Get user profile
-    const { data: userProfile, error: userError } = await supabase
+    let { data: userProfile, error: userError } = await supabase
       .from('users')
       .select('id')
       .eq('clerk_id', userId)
       .single()
 
+    console.log('User lookup result:', { userProfile, userError, userId })
+
     if (userError || !userProfile) {
-      return NextResponse.json({ message: 'User profile not found' }, { status: 404 })
+      // Create user profile if it doesn't exist
+      console.log('Creating new user profile for:', userId)
+      
+      const { data: newUserProfile, error: createUserError } = await supabase
+        .from('users')
+        .insert({
+          clerk_id: userId,
+          username: `user_${userId.slice(-8)}`, // Generate a default username
+          email: null, // Will be filled by Clerk webhook
+          country: 'EE', // Default to Estonia
+          preferred_language: 'en'
+        })
+        .select('id')
+        .single()
+
+      console.log('User creation result:', { newUserProfile, createUserError })
+
+      if (createUserError) {
+        console.error('Error creating user profile:', createUserError)
+        return NextResponse.json({ message: 'Failed to create user profile' }, { status: 500 })
+      }
+
+      userProfile = newUserProfile
     }
 
     // Create or get game
@@ -59,8 +83,7 @@ export async function POST(request: NextRequest) {
       const { data: newGame, error: gameError } = await supabase
         .from('games')
         .insert({
-          title: { en: gameTitle },
-          description: { en: description }
+          title: { en: gameTitle }
         })
         .select('id')
         .single()
@@ -151,6 +174,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ 
       success: true, 
       listing: { id: listing.id },
+      listingType: listingType,
       message: 'Listing created successfully' 
     })
 

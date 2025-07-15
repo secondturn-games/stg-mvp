@@ -12,12 +12,14 @@ interface Listing {
   currency: string
   condition: 'new' | 'like_new' | 'very_good' | 'good' | 'acceptable'
   location_city: string
-  location_country: string
   created_at: string
   description: Record<string, string>
   photos: string[]
   users: {
     username: string
+  }
+  games: {
+    title: Record<string, string>
   }
 }
 
@@ -95,7 +97,7 @@ export default function MarketplaceListings({ listings }: MarketplaceListingsPro
             {listing.photos && listing.photos.length > 0 ? (
               <OptimizedImage 
                 src={listing.photos[0]} 
-                alt={listing.description?.en?.split(' - ')[0] || 'Game'}
+                alt={listing.games?.title?.en || 'Game'}
                 className="w-full h-full rounded-t-lg"
                 fallback="🎲"
               />
@@ -112,7 +114,7 @@ export default function MarketplaceListings({ listings }: MarketplaceListingsPro
           {/* Game Info */}
           <div className="p-4">
             <h3 className="font-semibold text-gray-900 mb-1 line-clamp-2">
-              {listing.description?.en?.split(' - ')[0] || 'Untitled Game'}
+              {listing.games?.title?.en || 'Untitled Game'}
             </h3>
             
             <div className="flex items-center justify-between mb-2">

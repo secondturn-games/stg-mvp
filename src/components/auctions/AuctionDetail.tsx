@@ -1,25 +1,22 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useAuth } from '@clerk/nextjs'
 import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
-import OptimizedImage from '@/components/ui/OptimizedImage'
+import { 
+  MapPin, 
+  Calendar, 
+  Package, 
+  MessageCircle, 
+  Heart,
+  Share2,
+  ArrowLeft,
+  Clock,
+  Gavel
+} from 'lucide-react'
+import { formatCurrency, formatAuctionTimeLeft, getUserLocale } from '@/lib/regional-settings'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
+import OptimizedImage from '@/components/ui/OptimizedImage'
 import { useToast } from '@/components/ui/ToastProvider'
-import { formatCurrency, formatRelativeTime, formatAuctionTimeLeft, getUserLocale } from '@/lib/regional-settings'
-
-interface Bid {
-  id: string
-  auction_id: string
-  bidder_id: string
-  amount: number
-  is_proxy: boolean
-  created_at: string
-  users: {
-    username: string
-  }
-}
 
 interface Auction {
   id: string
@@ -61,90 +58,74 @@ interface Auction {
   }
 }
 
+interface Bid {
+  id: string
+  auction_id: string
+  bidder_id: string
+  amount: number
+  is_proxy: boolean
+  created_at: string
+  users: {
+    username: string
+  }
+}
+
 interface AuctionDetailProps {
   auction: Auction
   bids: Bid[]
 }
 
 export default function AuctionDetail({ auction, bids: initialBids }: AuctionDetailProps) {
-  const { userId } = useAuth()
   const router = useRouter()
-  const { showToast } = useToast()
-  const locale = getUserLocale()
-  
-  const [bids, setBids] = useState<Bid[]>(initialBids)
+  const [selectedImage, setSelectedImage] = useState(0)
+  const [isContactOpen, setIsContactOpen] = useState(false)
   const [bidAmount, setBidAmount] = useState('')
   const [isPlacingBid, setIsPlacingBid] = useState(false)
+  const [bids, setBids] = useState(initialBids)
   const [timeLeft, setTimeLeft] = useState('')
-  const [isAuctionActive, setIsAuctionActive] = useState(auction.status === 'active')
+  const locale = getUserLocale()
+  const { showToast } = useToast()
 
-  // Calculate time left
+  const gameTitle = auction.listings.games?.title?.en || 'Untitled Game'
+  const description = auction.listings.description?.en || ''
+
+  const isAuctionActive = auction.status === 'active' && new Date(auction.end_time) > new Date()
+
+  // Update time left every second
   useEffect(() => {
     const updateTimeLeft = () => {
-      if (!isAuctionActive) {
-        setTimeLeft('Auction ended')
-        return
-      }
-
       setTimeLeft(formatAuctionTimeLeft(auction.end_time))
-      
-      const now = new Date().getTime()
-      const endTime = new Date(auction.end_time).getTime()
-      if (endTime <= now) {
-        setIsAuctionActive(false)
-      }
     }
 
     updateTimeLeft()
     const interval = setInterval(updateTimeLeft, 1000)
 
     return () => clearInterval(interval)
-  }, [auction.end_time, isAuctionActive])
+  }, [auction.end_time])
 
-  // Real-time updates for bids
-  useEffect(() => {
-    const channel = supabase
-      .channel(`auction-${auction.id}`)
-      .on('postgres_changes', 
-        { 
-          event: 'INSERT', 
-          schema: 'public', 
-          table: 'bids',
-          filter: `auction_id=eq.${auction.id}`
-        }, 
-        (payload) => {
-          const newBid = payload.new as Bid
-          setBids(prev => [newBid, ...prev])
-          
-          // Update current price
-          if (newBid.amount > auction.current_price) {
-            // This would need to be handled by the backend trigger
-            // For now, we'll just show a toast
-            showToast('New bid placed!', 'info')
-          }
-        }
-      )
-      .subscribe()
-
-    return () => {
-      supabase.removeChannel(channel)
+  const getConditionLabel = (condition: string) => {
+    switch (condition) {
+      case 'new':
+        return 'New (Sealed)'
+      case 'like_new':
+        return 'Like New'
+      case 'very_good':
+        return 'Very Good'
+      case 'good':
+        return 'Good'
+      case 'acceptable':
+        return 'Acceptable'
+      default:
+        return condition
     }
-  }, [auction.id, auction.current_price, showToast])
+  }
+
+  const formatPrice = (price: number) => {
+    return formatCurrency(price, locale)
+  }
 
   const handleBidSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
-    if (!userId) {
-      showToast('Please sign in to place a bid', 'error')
-      return
-    }
-
-    const amount = parseFloat(bidAmount)
-    if (isNaN(amount) || amount <= auction.current_price) {
-      showToast('Bid must be higher than current price', 'error')
-      return
-    }
-
     setIsPlacingBid(true)
 
     try {
@@ -155,17 +136,28 @@ export default function AuctionDetail({ auction, bids: initialBids }: AuctionDet
         },
         body: JSON.stringify({
           auctionId: auction.id,
-          amount: amount
+          amount: parseFloat(bidAmount)
         }),
       })
 
       if (response.ok) {
-        showToast('Bid placed successfully!', 'success')
+        const result = await response.json()
+        // Refresh bids
+        const newBid = {
+          id: result.bid.id,
+          auction_id: auction.id,
+          bidder_id: result.bid.bidder_id,
+          amount: result.bid.amount,
+          is_proxy: false,
+          created_at: result.bid.created_at,
+          users: { username: 'You' }
+        }
+        setBids(prev => [newBid, ...prev])
         setBidAmount('')
-        // The real-time subscription will update the bids
+        showToast('Bid placed successfully!', 'success')
       } else {
         const error = await response.json()
-        showToast(error.message || 'Failed to place bid', 'error')
+        showToast(error.error || 'Failed to place bid', 'error')
       }
     } catch (error) {
       showToast('An error occurred while placing your bid', 'error')
@@ -175,13 +167,9 @@ export default function AuctionDetail({ auction, bids: initialBids }: AuctionDet
   }
 
   const handleBuyNow = async () => {
-    if (!userId) {
-      showToast('Please sign in to buy now', 'error')
-      return
-    }
+    if (!auction.buy_now_price) return
 
-    if (!auction.buy_now_price) {
-      showToast('Buy now price not available', 'error')
+    if (!confirm(`Are you sure you want to buy this item for ${formatPrice(auction.buy_now_price)}?`)) {
       return
     }
 
@@ -198,125 +186,103 @@ export default function AuctionDetail({ auction, bids: initialBids }: AuctionDet
 
       if (response.ok) {
         showToast('Purchase successful!', 'success')
-        router.push('/profile/my-purchases')
+        router.push('/marketplace')
       } else {
         const error = await response.json()
-        showToast(error.message || 'Failed to purchase', 'error')
+        showToast(error.error || 'Failed to purchase', 'error')
       }
     } catch (error) {
-      showToast('An error occurred during purchase', 'error')
+      showToast('An error occurred while processing your purchase', 'error')
     }
-  }
-
-  const getConditionLabel = (condition: string) => {
-    switch (condition) {
-      case 'new': return 'New'
-      case 'like_new': return 'Like New'
-      case 'very_good': return 'Very Good'
-      case 'good': return 'Good'
-      case 'acceptable': return 'Acceptable'
-      default: return condition
-    }
-  }
-
-  const formatPrice = (price: number) => {
-    return formatCurrency(price, locale)
-  }
-
-  const getTimeAgo = (dateString: string) => {
-    return formatRelativeTime(dateString, locale)
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-      {/* Left Column - Game Info */}
-      <div className="lg:col-span-2">
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">
-            {auction.listings.games?.title?.en || 'Untitled Game'}
-          </h1>
-          
-          {/* Game Image */}
-          <div className="mb-6">
-            {auction.listings.photos && auction.listings.photos.length > 0 ? (
-              <OptimizedImage
-                src={auction.listings.photos[0]}
-                alt={auction.listings.games?.title?.en || 'Game'}
-                className="w-full h-64 object-cover rounded-lg"
-                fallback="🎲"
-              />
-            ) : (
-              <div className="w-full h-64 bg-gray-100 rounded-lg flex items-center justify-center">
-                <div className="text-center">
-                  <div className="text-6xl mb-2">🎲</div>
-                  <div className="text-gray-500">No Image</div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Game Details */}
-          <div className="grid grid-cols-2 gap-4 mb-6">
-            <div>
-              <span className="text-sm text-gray-500">Condition</span>
-              <p className="font-medium">{getConditionLabel(auction.listings.condition)}</p>
-            </div>
-            <div>
-              <span className="text-sm text-gray-500">Location</span>
-              <p className="font-medium">{auction.listings.location_city}</p>
-            </div>
-          </div>
-
-          {/* Description */}
-          <div className="mb-6">
-            <h3 className="text-lg font-semibold mb-2">Description</h3>
-            <p className="text-gray-700">
-              {auction.listings.description?.en || 'No description available'}
-            </p>
-          </div>
-
-          {/* Seller Info */}
-          <div className="border-t pt-4">
-            <h3 className="text-lg font-semibold mb-2">Seller</h3>
-            <div className="flex items-center">
-              <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center mr-3">
-                <span className="text-sm font-medium">
-                  {auction.listings.users.username?.charAt(0).toUpperCase() || '?'}
-                </span>
-              </div>
-              <div>
-                <p className="font-medium">{auction.listings.users.username || 'Anonymous'}</p>
-                <p className="text-sm text-gray-500">Member since {new Date(auction.created_at).getFullYear()}</p>
-              </div>
-            </div>
-          </div>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <button
+          onClick={() => router.back()}
+          className="flex items-center text-gray-600 hover:text-gray-900 transition-colors"
+        >
+          <ArrowLeft className="h-5 w-5 mr-2" />
+          Back
+        </button>
+        
+        <div className="flex items-center space-x-4">
+          <button className="flex items-center text-gray-600 hover:text-gray-900 transition-colors">
+            <Heart className="h-5 w-5 mr-2" />
+            Watch
+          </button>
+          <button className="flex items-center text-gray-600 hover:text-gray-900 transition-colors">
+            <Share2 className="h-5 w-5 mr-2" />
+            Share
+          </button>
         </div>
       </div>
 
-      {/* Right Column - Auction Info */}
-      <div className="space-y-6">
-        {/* Auction Status */}
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <div className="text-center mb-4">
-            <div className="text-3xl font-bold text-blue-600 mb-2">
-              {formatPrice(auction.current_price)}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Images */}
+        <div className="space-y-4">
+          {auction.listings.photos && auction.listings.photos.length > 0 ? (
+            <>
+              <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
+                <OptimizedImage
+                  src={auction.listings.photos[selectedImage]}
+                  alt={gameTitle}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              {auction.listings.photos.length > 1 && (
+                <div className="grid grid-cols-4 gap-2">
+                  {auction.listings.photos.map((photo, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setSelectedImage(index)}
+                      className={`aspect-square bg-gray-100 rounded-lg overflow-hidden ${
+                        selectedImage === index ? 'ring-2 ring-blue-500' : ''
+                      }`}
+                    >
+                      <OptimizedImage
+                        src={photo}
+                        alt={`${gameTitle} ${index + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="aspect-square bg-gray-100 rounded-lg flex items-center justify-center">
+              <Package className="h-12 w-12 text-gray-400" />
             </div>
-            <div className="text-sm text-gray-500">
-              {bids.length} bid{bids.length !== 1 ? 's' : ''}
+          )}
+        </div>
+
+        {/* Auction Info */}
+        <div className="space-y-6">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">{gameTitle}</h1>
+            <p className="text-gray-600">{description}</p>
+          </div>
+
+          {/* Current Price */}
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-red-600 font-medium">Current Price</p>
+                <p className="text-2xl font-bold text-red-600">{formatPrice(auction.current_price)}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-sm text-red-600 font-medium">Time Left</p>
+                <p className={`text-lg font-bold ${timeLeft.includes('Ended') ? 'text-red-600' : 'text-red-600'}`}>
+                  {timeLeft}
+                </p>
+              </div>
             </div>
           </div>
 
-          {/* Time Left */}
-          <div className="text-center mb-6">
-            <div className="text-lg font-semibold text-gray-900">
-              {isAuctionActive ? 'Time Left' : 'Auction Ended'}
-            </div>
-            <div className={`text-2xl font-bold ${isAuctionActive ? 'text-red-600' : 'text-gray-500'}`}>
-              {timeLeft}
-            </div>
-          </div>
-
-          {/* Bid Form */}
+          {/* Bidding Section */}
           {isAuctionActive && (
             <form onSubmit={handleBidSubmit} className="space-y-4">
               <div>
@@ -383,37 +349,95 @@ export default function AuctionDetail({ auction, bids: initialBids }: AuctionDet
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Bid History */}
+      {/* Details Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Seller Info */}
         <div className="bg-white rounded-lg shadow-md p-6">
-          <h3 className="text-lg font-semibold mb-4">Bid History</h3>
-          {bids.length === 0 ? (
-            <p className="text-gray-500 text-center py-4">No bids yet</p>
-          ) : (
-            <div className="space-y-3">
-              {bids.slice(0, 10).map((bid) => (
-                <div key={bid.id} className="flex justify-between items-center py-2 border-b border-gray-100 last:border-b-0">
-                  <div>
-                    <div className="font-medium">{bid.users.username}</div>
-                    <div className="text-sm text-gray-500">{getTimeAgo(bid.created_at)}</div>
-                  </div>
-                  <div className="text-right">
-                    <div className="font-semibold">{formatPrice(bid.amount)}</div>
-                    {bid.is_proxy && (
-                      <div className="text-xs text-gray-500">Proxy</div>
-                    )}
-                  </div>
-                </div>
-              ))}
-              {bids.length > 10 && (
-                <p className="text-center text-sm text-gray-500 pt-2">
-                  +{bids.length - 10} more bids
-                </p>
-              )}
+          <h3 className="text-lg font-semibold mb-4">Seller Information</h3>
+          <div className="space-y-2">
+            <div className="flex items-center">
+              <span className="font-medium">Seller:</span>
+              <span className="ml-2">{auction.listings.users.username}</span>
             </div>
-          )}
+            <div className="flex items-center">
+              <MapPin className="h-4 w-4 mr-2 text-gray-500" />
+              <span>{auction.listings.location_city}</span>
+            </div>
+            <div className="flex items-center">
+              <span className="font-medium">Condition:</span>
+              <span className="ml-2">{getConditionLabel(auction.listings.condition)}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Shipping Info */}
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <h3 className="text-lg font-semibold mb-4">Shipping Options</h3>
+          <div className="space-y-2">
+            {auction.listings.shipping_options?.omniva && (
+              <div className="flex items-center">
+                <Package className="h-4 w-4 mr-2 text-gray-500" />
+                <span>Omniva Pickup</span>
+              </div>
+            )}
+            {auction.listings.shipping_options?.dpd && (
+              <div className="flex items-center">
+                <Package className="h-4 w-4 mr-2 text-gray-500" />
+                <span>DPD Delivery</span>
+              </div>
+            )}
+            {auction.listings.shipping_options?.pickup && (
+              <div className="flex items-center">
+                <MapPin className="h-4 w-4 mr-2 text-gray-500" />
+                <span>Local Pickup</span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
+
+      {/* Bid History */}
+      <div className="bg-white rounded-lg shadow-md p-6">
+        <h3 className="text-lg font-semibold mb-4">Bid History</h3>
+        
+        {bids.length === 0 ? (
+          <p className="text-gray-500">No bids yet. Be the first to bid!</p>
+        ) : (
+          <div className="space-y-3">
+            {bids.map((bid) => (
+              <div key={bid.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0">
+                <div>
+                  <span className="font-medium">{bid.users.username}</span>
+                  <span className="text-sm text-gray-500 ml-2">
+                    {new Date(bid.created_at).toLocaleString(locale)}
+                  </span>
+                </div>
+                <span className="font-bold text-blue-600">{formatPrice(bid.amount)}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Contact Modal (placeholder) */}
+      {isContactOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold mb-4">Contact Seller</h3>
+            <p className="text-gray-600 mb-4">
+              Contact feature coming soon! For now, you can reach out to the seller through their profile.
+            </p>
+            <button
+              onClick={() => setIsContactOpen(false)}
+              className="w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition-colors"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 } 

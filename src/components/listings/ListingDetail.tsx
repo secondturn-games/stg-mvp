@@ -36,6 +36,9 @@ interface Listing {
     email: string
     country: string
   }
+  games: {
+    title: Record<string, string>
+  }
   // Optional formatted fields from server
   formattedPrice?: string
   formattedCreatedAt?: string
@@ -51,8 +54,8 @@ export default function ListingDetail({ listing }: ListingDetailProps) {
   const [isContactOpen, setIsContactOpen] = useState(false)
   const locale = getUserLocale()
 
-  const gameTitle = listing.description?.en?.split(' - ')[0] || 'Untitled Game'
-  const description = listing.description?.en?.split(' - ').slice(1).join(' - ') || ''
+  const gameTitle = listing.games?.title?.en || 'Untitled Game'
+  const description = listing.description?.en || ''
 
   const getConditionLabel = (condition: string) => {
     switch (condition) {

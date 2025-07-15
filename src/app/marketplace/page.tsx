@@ -4,25 +4,64 @@ import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import { Suspense } from 'react'
 
 async function MarketplaceContent() {
-  // Get all active listings with seller information
+  // Get all active listings with seller information (excluding auctions) - limit to 50 for performance
   const { data: listings, error } = await supabase
     .from('listings')
     .select(`
-      *,
+      id,
+      listing_type,
+      price,
+      currency,
+      condition,
+      location_city,
+      created_at,
+      description,
+      photos,
       users!listings_seller_id_fkey (
         username
+      ),
+      games!listings_game_id_fkey (
+        title
       )
     `)
     .eq('status', 'active')
+    .neq('listing_type', 'auction')
     .order('created_at', { ascending: false })
+    .limit(50)
 
-  // Get active auctions
+  // Get active auctions - limit to 20 for performance
   const { data: auctions, error: auctionError } = await supabase
     .from('auctions')
     .select(`
-      *,
+      id,
+      starting_price,
+      current_price,
+      reserve_price,
+      bid_increment,
+      end_time,
+      extension_time,
+      buy_now_price,
+      status,
+      winner_id,
+      minimum_bid,
+      created_at,
+      updated_at,
       listings!auctions_listing_id_fkey (
-        *,
+        id,
+        seller_id,
+        game_id,
+        listing_type,
+        price,
+        currency,
+        condition,
+        location_country,
+        location_city,
+        shipping_options,
+        photos,
+        description,
+        status,
+        verified_photos,
+        created_at,
         users!listings_seller_id_fkey (
           username
         ),
@@ -33,6 +72,7 @@ async function MarketplaceContent() {
     `)
     .eq('status', 'active')
     .order('end_time', { ascending: true })
+    .limit(20)
 
   if (error) {
     console.error('Error fetching listings:', error)
@@ -56,6 +96,11 @@ async function MarketplaceContent() {
         <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
           <div className="text-sm text-gray-600">
             {listings?.length || 0} active listings
+            {auctions && auctions.length > 0 && (
+              <span className="ml-2 text-red-600">
+                • {auctions.length} active auctions
+              </span>
+            )}
           </div>
           <div className="flex gap-2">
             <a 
