@@ -11,6 +11,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
+    const supabase = createSupabaseClient();
     const { data: auction, error } = await supabase
       .from('auctions')
       .select(
