@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { updateUserProfile } from '@/lib/user-service';
+import { userProfileSchema, validateInput } from '@/lib/validation';
 
 // Force dynamic rendering for this API route
 export const dynamic = 'force-dynamic';
@@ -14,27 +15,19 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { username, country, preferred_language, vat_number } = body;
-
-    // Validate required fields
-    if (!username || !country) {
+    
+    // Validate input using Zod schema
+    let validatedData;
+    try {
+      validatedData = validateInput(userProfileSchema, body);
+    } catch (error) {
       return NextResponse.json(
-        { error: 'Username and country are required' },
+        { error: 'Invalid input data', details: error },
         { status: 400 }
       );
     }
 
-    // Validate country
-    const validCountries = ['EE', 'LV', 'LT'];
-    if (!validCountries.includes(country)) {
-      return NextResponse.json({ error: 'Invalid country' }, { status: 400 });
-    }
-
-    // Validate language
-    const validLanguages = ['en', 'et', 'lv', 'lt'];
-    if (preferred_language && !validLanguages.includes(preferred_language)) {
-      return NextResponse.json({ error: 'Invalid language' }, { status: 400 });
-    }
+    const { username, country, preferred_language, vat_number } = validatedData;
 
     const updatedProfile = await updateUserProfile({
       username,
