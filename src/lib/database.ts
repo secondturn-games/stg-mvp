@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { createSupabaseClient } from './supabase';
 import type { Inserts, Updates } from './supabase';
 
 // User operations

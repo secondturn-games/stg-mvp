@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { createSupabaseClient } from '@/lib/supabase';
 
 // Force dynamic rendering for this API route
 export const dynamic = 'force-dynamic';
@@ -14,6 +14,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Search games by title (case-insensitive) - fixed PostgreSQL syntax
+    const supabase = createSupabaseClient();
     const { data: games, error } = await supabase
       .from('games')
       .select('id, title')

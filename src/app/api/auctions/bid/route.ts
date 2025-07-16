@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { supabase } from '@/lib/supabase';
+import { createSupabaseClient } from '@/lib/supabase';
 import { getCurrentUserProfile } from '@/lib/user-service';
 
 // Force dynamic rendering for this API route
@@ -42,6 +42,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get auction details
+    const supabase = createSupabaseClient();
     const { data: auction, error: auctionError } = await supabase
       .from('auctions')
       .select('*')

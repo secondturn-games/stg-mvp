@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { createSupabaseClient } from './supabase';
 import { auth, clerkClient } from '@clerk/nextjs/server';
 import type { Updates } from './supabase';
 
@@ -26,6 +26,7 @@ export interface CreateUserProfileData {
 export async function createUserProfile(
   userData: CreateUserProfileData
 ): Promise<UserProfile> {
+  const supabase = createSupabaseClient();
   const { data, error } = await supabase
     .from('users')
     .insert({
@@ -64,6 +65,7 @@ export async function getCurrentUserProfile(): Promise<UserProfile | null> {
       return null;
     }
 
+    const supabase = createSupabaseClient();
     const { data, error } = await supabase
       .from('users')
       .select('*')
@@ -98,6 +100,7 @@ export async function updateUserProfile(
     throw new Error('User email not found');
   }
 
+  const supabase = createSupabaseClient();
   const { data, error } = await supabase
     .from('users')
     .update(updates)
@@ -116,6 +119,7 @@ export async function updateUserProfile(
 export async function getUserProfileById(
   userId: string
 ): Promise<UserProfile | null> {
+  const supabase = createSupabaseClient();
   const { data, error } = await supabase
     .from('users')
     .select('*')
@@ -131,6 +135,7 @@ export async function getUserProfileById(
 
 // Check if user profile exists
 export async function userProfileExists(email: string): Promise<boolean> {
+  const supabase = createSupabaseClient();
   const { data, error } = await supabase
     .from('users')
     .select('id')
@@ -146,6 +151,7 @@ export async function userProfileExists(email: string): Promise<boolean> {
 
 // Get user statistics
 export async function getUserStats(userId: string) {
+  const supabase = createSupabaseClient();
   const [listingsResult, transactionsResult] = await Promise.all([
     supabase.from('listings').select('id, status').eq('seller_id', userId),
     supabase

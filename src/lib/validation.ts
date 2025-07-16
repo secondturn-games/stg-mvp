@@ -22,7 +22,7 @@ export const listingCreateSchema = z.object({
   locationCity: z.string().min(1).max(100),
   description: z.string().min(10).max(2000),
   images: z.array(z.string().url()).max(10).optional(),
-  shippingOptions: z.record(z.any()).optional(),
+  shippingOptions: z.record(z.string(), z.any()).optional(),
   // Auction-specific fields
   startingPrice: z.number().positive().optional(),
   auctionDays: z.number().int().min(1).max(30).optional(),

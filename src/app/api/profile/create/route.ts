@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth, clerkClient } from '@clerk/nextjs/server';
 import { createUserProfile, userProfileExists } from '@/lib/user-service';
-import { supabase } from '@/lib/supabase';
+import { createSupabaseClient } from '@/lib/supabase';
 
 // Force dynamic rendering for this API route
 export const dynamic = 'force-dynamic';
