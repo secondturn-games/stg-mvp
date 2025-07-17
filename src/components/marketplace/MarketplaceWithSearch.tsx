@@ -3,27 +3,10 @@
 import { useState, useMemo } from 'react';
 import SearchFilters from './SearchFilters';
 import MarketplaceListings from './MarketplaceListings';
-import AuctionCard from './AuctionCard';
+import AuctionCard from '@/components/data-display/AuctionCard';
 import { filterListings, getSearchStats } from '@/lib/search-utils';
 import type { FilterState } from './SearchFilters';
-
-interface Listing {
-  id: string;
-  listing_type: 'fixed' | 'auction' | 'trade';
-  price: number | null;
-  currency: string;
-  condition: 'new' | 'like_new' | 'very_good' | 'good' | 'acceptable';
-  location_city: string;
-  created_at: string;
-  description: Record<string, string>;
-  photos: string[];
-  users: {
-    username: string;
-  };
-  games: {
-    title: Record<string, string>;
-  };
-}
+import type { Listing } from '@/types';
 
 interface Auction {
   id: string;

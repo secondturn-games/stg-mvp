@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, ReactNode } from 'react';
-import Toast from './Toast';
+import Toast from '@/components/feedback/Toast';
 
 interface ToastMessage {
   id: string;

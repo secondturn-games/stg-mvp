@@ -37,6 +37,13 @@ export interface Listing {
   verified_photos: boolean;
   created_at: string;
   updated_at: string;
+  // Optional relational data
+  users?: {
+    username: string;
+  };
+  games?: {
+    title: Record<string, string>;
+  };
 }
 
 export interface Auction {

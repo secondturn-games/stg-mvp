@@ -8,9 +8,9 @@ import {
   formatAuctionTimeLeft,
   getUserLocale,
 } from '@/lib/regional-settings';
-import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import LoadingSpinner from '@/components/feedback/LoadingSpinner';
 import OptimizedImage from '@/components/ui/OptimizedImage';
-import { useToast } from '@/components/ui/ToastProvider';
+import { useToast } from '@/components/feedback/ToastProvider';
 
 interface Auction {
   id: string;

@@ -1,6 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import AuctionDetail from '@/components/auctions/AuctionDetail';
-import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import LoadingSpinner from '@/components/feedback/LoadingSpinner';
 import { Suspense } from 'react';
 import { notFound } from 'next/navigation';
 

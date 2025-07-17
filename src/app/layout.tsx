@@ -6,7 +6,7 @@ import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import './globals.css';
 import SkipToContent from '@/components/ui/SkipToContent';
-import ToastProvider from '@/components/ui/ToastProvider';
+import ToastProvider from '@/components/feedback/ToastProvider';
 
 const inter = Inter({ subsets: ['latin'] });
 

@@ -1,6 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import MarketplaceWithSearch from '@/components/marketplace/MarketplaceWithSearch';
-import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import LoadingSpinner from '@/components/feedback/LoadingSpinner';
 import { Suspense } from 'react';
 
 async function MarketplaceContent() {

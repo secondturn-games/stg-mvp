@@ -6,37 +6,7 @@ import { useRouter } from 'next/navigation';
 import ImageUpload from './ImageUpload';
 import { getUserLocale } from '@/lib/regional-settings';
 import { Eye, X } from 'lucide-react';
-
-interface ListingFormData {
-  id?: string;
-  gameTitle: string;
-  gameId: string | null;
-  listingType: 'fixed' | 'auction' | 'trade';
-  price: string;
-  currency: 'EUR';
-  condition: 'new' | 'like_new' | 'very_good' | 'good' | 'acceptable';
-  locationCity: string;
-  description: string;
-  images: string[];
-  photos?: string[];
-  shippingOptions: {
-    omniva: boolean;
-    dpd: boolean;
-    pickup: boolean;
-  };
-  // Auction-specific fields
-  startingPrice: string;
-  auctionDays: string;
-  endTime: string;
-  reservePrice: string;
-  buyNowPrice: string;
-  bidIncrement: string;
-}
-
-interface GameSuggestion {
-  id: string;
-  title: Record<string, string>;
-}
+import type { ListingFormData, GameSuggestion } from '@/types';
 
 interface ListingFormProps {
   mode?: 'create' | 'edit';

@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import EmptyState from '@/components/ui/EmptyState';
+import EmptyState from '@/components/feedback/EmptyState';
 import OptimizedImage from '@/components/ui/OptimizedImage';
 import { formatRelativeTime, getUserLocale } from '@/lib/regional-settings';
 
