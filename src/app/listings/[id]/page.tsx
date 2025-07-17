@@ -7,6 +7,10 @@ import {
   getUserLocale,
 } from '@/lib/regional-settings';
 
+// Force dynamic rendering to prevent caching issues
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 interface PageProps {
   params: {
     id: string;
@@ -29,6 +33,7 @@ export default async function ListingPage({ params }: PageProps) {
     `
     )
     .eq('id', params.id)
+    .eq('status', 'active')
     .single();
 
   if (error || !listing) {

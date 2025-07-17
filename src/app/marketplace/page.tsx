@@ -4,6 +4,10 @@ import LoadingSpinner from '@/components/feedback/LoadingSpinner';
 import { Suspense } from 'react';
 import type { Listing } from '@/types';
 
+// Force dynamic rendering to prevent caching issues
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 async function MarketplaceContent() {
   // Get all active listings with seller information (excluding auctions) - limit to 50 for performance
   const { data: listings, error } = await supabase

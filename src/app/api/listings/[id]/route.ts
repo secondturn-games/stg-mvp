@@ -27,6 +27,7 @@ export async function GET(
       `
       )
       .eq('id', params.id)
+      .eq('status', 'active')
       .single();
 
     if (error) {
@@ -186,10 +187,13 @@ export async function DELETE(
       }
     }
 
-    // Delete the listing (this will cascade to auctions if it's an auction)
+    // Soft delete the listing by setting status to 'inactive'
     const { error: deleteError } = await supabase
       .from('listings')
-      .delete()
+      .update({ 
+        status: 'inactive',
+        updated_at: new Date().toISOString()
+      })
       .eq('id', params.id);
 
     if (deleteError) {
