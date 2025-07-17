@@ -11,13 +11,15 @@ export async function GET(
   try {
     const { data: bids, error } = await supabase
       .from('bids')
-      .select(`
+      .select(
+        `
         *,
         users!bids_bidder_id_fkey (
           id,
           username
         )
-      `)
+      `
+      )
       .eq('auction_id', params.id)
       .order('created_at', { ascending: false });
 
@@ -30,7 +32,7 @@ export async function GET(
 
     return NextResponse.json({
       success: true,
-      data: bids
+      data: bids,
     });
   } catch (error) {
     console.error('Error fetching bids:', error);
@@ -46,8 +48,8 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { userId } = auth();
-    
+    const { userId } = await auth();
+
     if (!userId) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
@@ -101,7 +103,7 @@ export async function POST(
       .insert({
         auction_id: params.id,
         bidder_id: profile.id,
-        amount
+        amount,
       })
       .select()
       .single();
@@ -118,7 +120,7 @@ export async function POST(
       .from('auctions')
       .update({
         current_price: amount,
-        bid_count: auction.bid_count + 1
+        bid_count: auction.bid_count + 1,
       })
       .eq('id', params.id);
 
@@ -128,7 +130,7 @@ export async function POST(
 
     return NextResponse.json({
       success: true,
-      data: bid
+      data: bid,
     });
   } catch (error) {
     console.error('Error creating bid:', error);

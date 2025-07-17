@@ -189,6 +189,100 @@ export async function searchListings(filters: {
   return data;
 }
 
+// Auction operations
+export async function createAuction(auctionData: Inserts<'auctions'>) {
+  const { data, error } = await supabase
+    .from('auctions')
+    .insert(auctionData)
+    .select()
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
+export async function getAuctions(filters: {
+  page?: number;
+  limit?: number;
+  status?: string;
+}) {
+  const { page = 1, limit = 10, status = 'active' } = filters;
+  const offset = (page - 1) * limit;
+
+  const { data, error } = await supabase
+    .from('auctions')
+    .select(
+      `
+      *,
+      listings!auctions_listing_id_fkey (
+        *,
+        users!listings_seller_id_fkey(*),
+        games!listings_game_id_fkey(*)
+      )
+    `
+    )
+    .eq('status', status)
+    .order('created_at', { ascending: false })
+    .range(offset, offset + limit - 1);
+
+  if (error) {
+    return [];
+  }
+
+  return data;
+}
+
+export async function getAuctionById(id: string) {
+  const { data, error } = await supabase
+    .from('auctions')
+    .select(
+      `
+      *,
+      listings!auctions_listing_id_fkey (
+        *,
+        users!listings_seller_id_fkey(*),
+        games!listings_game_id_fkey(*)
+      )
+    `
+    )
+    .eq('id', id)
+    .single();
+
+  if (error) {
+    return null;
+  }
+
+  return data;
+}
+
+export async function updateAuction(id: string, updates: Updates<'auctions'>) {
+  const { data, error } = await supabase
+    .from('auctions')
+    .update(updates)
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
+export async function deleteAuction(id: string) {
+  const { error } = await supabase.from('auctions').delete().eq('id', id);
+
+  if (error) {
+    throw error;
+  }
+
+  return true;
+}
+
 // Utility functions
 export async function getBalticCountries() {
   return [

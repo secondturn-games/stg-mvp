@@ -2,6 +2,7 @@ import { supabase } from '@/lib/supabase';
 import MarketplaceWithSearch from '@/components/marketplace/MarketplaceWithSearch';
 import LoadingSpinner from '@/components/feedback/LoadingSpinner';
 import { Suspense } from 'react';
+import type { Listing } from '@/types';
 
 async function MarketplaceContent() {
   // Get all active listings with seller information (excluding auctions) - limit to 50 for performance
@@ -95,7 +96,7 @@ async function MarketplaceContent() {
     ...listing,
     users: Array.isArray(listing.users) ? listing.users[0] : listing.users,
     games: Array.isArray(listing.games) ? listing.games[0] : listing.games,
-  }));
+  })) as Listing[];
 
   // Helper to recursively flatten arrays
   function flattenFirst(obj: any) {

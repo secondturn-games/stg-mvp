@@ -1,22 +1,5 @@
 import type { FilterState } from '@/components/marketplace/SearchFilters';
-
-interface Listing {
-  id: string;
-  listing_type: 'fixed' | 'auction' | 'trade';
-  price: number | null;
-  currency: string;
-  condition: 'new' | 'like_new' | 'very_good' | 'good' | 'acceptable';
-  location_city: string;
-  created_at: string;
-  description: Record<string, string>;
-  photos: string[];
-  users: {
-    username: string;
-  };
-  games: {
-    title: Record<string, string>;
-  };
-}
+import type { Listing } from '@/types';
 
 export function filterListings(
   listings: Listing[],
@@ -50,7 +33,7 @@ export function filterListings(
   if (filters.priceRange.min > 0 || filters.priceRange.max < 1000) {
     filtered = filtered.filter(listing => {
       // Include trade listings (price is null) in all price ranges
-      if (listing.price === null) return true;
+      if (listing.price === null || listing.price === undefined) return true;
       return (
         listing.price >= filters.priceRange.min &&
         listing.price <= filters.priceRange.max
@@ -85,16 +68,16 @@ function sortListings(listings: Listing[], sortBy: string): Listing[] {
     case 'price_low':
       return sorted.sort((a, b) => {
         if (a.price === null && b.price === null) return 0;
-        if (a.price === null) return 1;
-        if (b.price === null) return -1;
+        if (a.price === null || a.price === undefined) return 1;
+        if (b.price === null || b.price === undefined) return -1;
         return a.price - b.price;
       });
 
     case 'price_high':
       return sorted.sort((a, b) => {
         if (a.price === null && b.price === null) return 0;
-        if (a.price === null) return 1;
-        if (b.price === null) return -1;
+        if (a.price === null || a.price === undefined) return 1;
+        if (b.price === null || b.price === undefined) return -1;
         return b.price - a.price;
       });
 

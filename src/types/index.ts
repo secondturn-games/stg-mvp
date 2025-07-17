@@ -21,7 +21,7 @@ export interface Listing {
   seller_id: string;
   game_id: string;
   listing_type: 'fixed' | 'auction' | 'trade';
-  price?: number;
+  price?: number | null;
   currency: 'EUR';
   condition: 'new' | 'like_new' | 'very_good' | 'good' | 'acceptable';
   location_country: string;

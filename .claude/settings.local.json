@@ -7,7 +7,11 @@
       "Bash(mv:*)",
       "Bash(npm run check-all:*)",
       "Bash(npm run type-check:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(npm run format:*)",
+      "Bash(npm run build:*)"
     ],
     "deny": []
   }

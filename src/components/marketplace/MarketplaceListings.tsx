@@ -4,24 +4,7 @@ import { useRouter } from 'next/navigation';
 import EmptyState from '@/components/feedback/EmptyState';
 import OptimizedImage from '@/components/ui/OptimizedImage';
 import { formatRelativeTime, getUserLocale } from '@/lib/regional-settings';
-
-interface Listing {
-  id: string;
-  listing_type: 'fixed' | 'auction' | 'trade';
-  price: number | null;
-  currency: string;
-  condition: 'new' | 'like_new' | 'very_good' | 'good' | 'acceptable';
-  location_city: string;
-  created_at: string;
-  description: Record<string, string>;
-  photos: string[];
-  users: {
-    username: string;
-  };
-  games: {
-    title: Record<string, string>;
-  };
-}
+import type { Listing } from '@/types';
 
 interface MarketplaceListingsProps {
   listings: Listing[];
@@ -63,7 +46,7 @@ export default function MarketplaceListings({
     }
   };
 
-  const formatPrice = (price: number | null) => {
+  const formatPrice = (price: number | null | undefined) => {
     if (!price) return 'Trade Only';
     return new Intl.NumberFormat('et-EE', {
       style: 'currency',
@@ -158,11 +141,11 @@ export default function MarketplaceListings({
                 <div className='flex items-center'>
                   <div className='w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center mr-2'>
                     <span className='text-xs text-gray-500'>
-                      {listing.users.username?.charAt(0).toUpperCase() || '?'}
+                      {listing.users?.username?.charAt(0).toUpperCase() || '?'}
                     </span>
                   </div>
                   <span className='text-sm text-gray-600'>
-                    {listing.users.username || 'Anonymous'}
+                    {listing.users?.username || 'Anonymous'}
                   </span>
                 </div>
                 <div className='text-xs text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity'>

@@ -14,11 +14,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const {
-      username,
-      country,
-      preferred_language,
-    } = await request.json();
+    const { username, country, preferred_language } = await request.json();
 
     // Validate required fields
     if (!username || !country) {

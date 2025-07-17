@@ -12,10 +12,10 @@ export async function GET(request: Request) {
     const status = searchParams.get('status') || 'active';
 
     const auctions = await getAuctions({ page, limit, status });
-    
+
     return NextResponse.json({
       success: true,
-      data: auctions
+      data: auctions,
     });
   } catch (error) {
     console.error('Error fetching auctions:', error);
@@ -28,8 +28,8 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const { userId } = auth();
-    
+    const { userId } = await auth();
+
     if (!userId) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
@@ -39,10 +39,10 @@ export async function POST(request: Request) {
 
     const body = await request.json();
     const auction = await createAuction(body);
-    
+
     return NextResponse.json({
       success: true,
-      data: auction
+      data: auction,
     });
   } catch (error) {
     console.error('Error creating auction:', error);

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { supabase } from '@/lib/supabase';
-import { updateAuction, deleteAuction } from '@/lib/database';
 
 // Force dynamic rendering for this API route
 export const dynamic = 'force-dynamic';
