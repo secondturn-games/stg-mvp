@@ -1,7 +1,7 @@
 import Stripe from 'stripe';
 
-// Initialize Stripe server-side client
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+// Initialize Stripe server-side client with proper error handling
+export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
   apiVersion: '2025-06-30.basil',
 });
 
@@ -11,14 +11,22 @@ export const getStripeClient = () => {
     return null;
   }
   
-  return require('@stripe/stripe-js').loadStripe(
-    process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
-  );
+  const publishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+  if (!publishableKey) {
+    console.warn('Stripe publishable key not found');
+    return null;
+  }
+  
+  return require('@stripe/stripe-js').loadStripe(publishableKey);
 };
 
 // Payment intent creation
 export const createPaymentIntent = async (amount: number, currency: string = 'eur') => {
   try {
+    if (!process.env.STRIPE_SECRET_KEY) {
+      throw new Error('Stripe secret key not configured');
+    }
+    
     const paymentIntent = await stripe.paymentIntents.create({
       amount: Math.round(amount * 100), // Convert to cents
       currency,
@@ -37,6 +45,10 @@ export const createPaymentIntent = async (amount: number, currency: string = 'eu
 // Connect account creation
 export const createConnectAccount = async (email: string, country: string) => {
   try {
+    if (!process.env.STRIPE_SECRET_KEY) {
+      throw new Error('Stripe secret key not configured');
+    }
+    
     const account = await stripe.accounts.create({
       type: 'express',
       country,
@@ -57,6 +69,10 @@ export const createConnectAccount = async (email: string, country: string) => {
 // Generate account link for onboarding
 export const createAccountLink = async (accountId: string, refreshUrl: string, returnUrl: string) => {
   try {
+    if (!process.env.STRIPE_SECRET_KEY) {
+      throw new Error('Stripe secret key not configured');
+    }
+    
     const accountLink = await stripe.accountLinks.create({
       account: accountId,
       refresh_url: refreshUrl,
@@ -74,6 +90,10 @@ export const createAccountLink = async (accountId: string, refreshUrl: string, r
 // Get account details
 export const getAccountDetails = async (accountId: string) => {
   try {
+    if (!process.env.STRIPE_SECRET_KEY) {
+      throw new Error('Stripe secret key not configured');
+    }
+    
     const account = await stripe.accounts.retrieve(accountId);
     return { success: true, account };
   } catch (error) {
@@ -90,6 +110,10 @@ export const createTransfer = async (
   description?: string
 ) => {
   try {
+    if (!process.env.STRIPE_SECRET_KEY) {
+      throw new Error('Stripe secret key not configured');
+    }
+    
     const transfer = await stripe.transfers.create({
       amount: Math.round(amount * 100), // Convert to cents
       currency,
