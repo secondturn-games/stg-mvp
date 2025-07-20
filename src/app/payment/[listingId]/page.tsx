@@ -1,14 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { ArrowLeft, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 
 export default function PaymentPage() {
   const params = useParams();
   const listingId = params.listingId as string;
-  const router = useRouter();
   
   const [listing, setListing] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -78,7 +77,7 @@ export default function PaymentPage() {
               Payment Temporarily Unavailable
             </h2>
             <p className="text-gray-600 mb-6">
-              We're currently working on improving our payment system. 
+              We&apos;re currently working on improving our payment system. 
               Please check back later to complete your purchase.
             </p>
             

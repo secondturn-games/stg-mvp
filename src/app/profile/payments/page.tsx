@@ -1,11 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { AlertTriangle, CreditCard, DollarSign, Settings } from 'lucide-react';
 
 export default function PaymentsPage() {
-  const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -41,7 +39,7 @@ export default function PaymentsPage() {
               Payment System Temporarily Disabled
             </h2>
             <p className="text-gray-600 mb-8 max-w-2xl mx-auto">
-              We're currently working on improving our payment system to provide you with 
+              We&apos;re currently working on improving our payment system to provide you with 
               a better experience. Payment features will be available soon.
             </p>
             

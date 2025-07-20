@@ -1,7 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { headers } from 'next/headers';
-import Stripe from 'stripe';
-import { supabase } from '@/lib/supabase';
 
 export const dynamic = 'force-dynamic';
 
