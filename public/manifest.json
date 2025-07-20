@@ -1,0 +1,36 @@
+{
+  "name": "Second Turn",
+  "short_name": "SecondTurn",
+  "description": "Buy and sell your used board games.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#DBE5B9",
+  "theme_color": "#6C8C64",
+  "icons": [
+    {
+      "src": "/icon-192x192-light.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512x512-light.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/apple-touch-icon-light.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon-16x16-light.png",
+      "sizes": "16x16",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon-32x32-light.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    }
+  ]
+} 

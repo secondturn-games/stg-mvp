@@ -3,6 +3,7 @@
 import { useAuth, useUser } from '@clerk/nextjs';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import Image from 'next/image';
 
 export default function Navigation() {
   const { isSignedIn } = useAuth();
@@ -19,7 +20,13 @@ export default function Navigation() {
         <div className='flex justify-between items-center h-16'>
           {/* Logo */}
           <Link href='/' className='flex items-center space-x-2'>
-            <span className='text-2xl'>🎲</span>
+            <Image
+              src='/nav-logo-light.svg'
+              alt='Second Turn'
+              width={32}
+              height={32}
+              className='h-8 w-auto'
+            />
             <span className='text-xl font-bold text-gray-900'>Second Turn</span>
           </Link>
 
