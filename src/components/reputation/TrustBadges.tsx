@@ -72,7 +72,7 @@ export default function TrustBadges({
                     Awarded {new Date(badge.awarded_at).toLocaleDateString()}
                   </div>
                   {/* Arrow */}
-                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900" />
                 </div>
               )}
             </div>

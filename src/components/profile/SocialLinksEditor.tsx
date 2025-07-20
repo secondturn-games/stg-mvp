@@ -103,7 +103,7 @@ export default function SocialLinksEditor({
                   <Icon className="h-4 w-4" />
                   <span>{platform.label}</span>
                   {hasValue && (
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <div className="w-2 h-2 bg-green-500 rounded-full" />
                   )}
                 </button>
                 {isExpanded && (
@@ -131,7 +131,7 @@ export default function SocialLinksEditor({
                   />
                   {hasValue && (
                     <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                      <div className="w-2 h-2 bg-green-500 rounded-full" />
                     </div>
                   )}
                 </div>

@@ -64,7 +64,7 @@ export default function PaymentSuccessPage() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4" />
           <p className="text-gray-600">Loading transaction details...</p>
         </div>
       </div>
@@ -154,7 +154,7 @@ export default function PaymentSuccessPage() {
                 <div>
                   <h3 className="font-medium text-gray-900">Shipping & Tracking</h3>
                   <p className="text-gray-600 text-sm">
-                    You'll receive shipping details and tracking information once the seller ships your item.
+                    You&apos;ll receive shipping details and tracking information once the seller ships your item.
                   </p>
                 </div>
               </div>

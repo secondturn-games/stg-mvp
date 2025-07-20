@@ -109,10 +109,10 @@ export default function InsightsWidget({ className = '' }: InsightsWidgetProps) 
     return (
       <div className={`bg-white rounded-lg shadow-md p-6 ${className}`}>
         <div className="animate-pulse">
-          <div className="h-6 bg-gray-200 rounded w-1/3 mb-4"></div>
+          <div className="h-6 bg-gray-200 rounded w-1/3 mb-4" />
           <div className="space-y-3">
             {[1, 2, 3].map(i => (
-              <div key={i} className="h-20 bg-gray-200 rounded"></div>
+              <div key={i} className="h-20 bg-gray-200 rounded" />
             ))}
           </div>
         </div>
@@ -137,7 +137,7 @@ export default function InsightsWidget({ className = '' }: InsightsWidgetProps) 
         <div className="text-center text-gray-500">
           <Lightbulb className="h-12 w-12 mx-auto mb-4 text-gray-300" />
           <p className="font-medium">No insights available</p>
-          <p className="text-sm">We'll generate insights as you use the platform</p>
+          <p className="text-sm">We&apos;ll generate insights as you use the platform</p>
         </div>
       </div>
     );

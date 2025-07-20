@@ -168,7 +168,7 @@ export default function NotificationBell({ className = '' }: NotificationBellPro
           <div className="max-h-96 overflow-y-auto">
             {isLoading ? (
               <div className="p-4 text-center text-gray-500">
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto" />
                 <p className="mt-2">Loading notifications...</p>
               </div>
             ) : notifications.length === 0 ? (

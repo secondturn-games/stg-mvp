@@ -167,7 +167,7 @@ export default function PriceAlertForm({ onSubmit, onCancel, className = '' }: P
               <div>
                 <h4 className="text-sm font-medium text-blue-900">How it works</h4>
                 <p className="text-sm text-blue-700 mt-1">
-                  We'll monitor the marketplace for price changes and notify you when your conditions are met. 
+                  We&apos;ll monitor the marketplace for price changes and notify you when your conditions are met. 
                   You can manage your alerts from your profile settings.
                 </p>
               </div>
