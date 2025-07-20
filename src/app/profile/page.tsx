@@ -10,6 +10,7 @@ import QuickActionsDashboard from '@/components/ui/QuickActionsDashboard';
 import ActivityTimeline from '@/components/ui/ActivityTimeline';
 import { calculateProfileCompletion } from '@/lib/profile-completion';
 import { calculateProfileStrength } from '@/lib/profile-strength';
+import { getUserReputation, getBadgeInfo } from '@/lib/reputation-service';
 import {
   formatCurrency,
   formatRelativeTime,
@@ -137,6 +138,9 @@ export default async function ProfilePage() {
   
   const profileStrength = calculateProfileStrength(profile, userStats);
 
+  // Get reputation data
+  const reputation = await getUserReputation(profile.id);
+
   return (
     <div className='container mx-auto px-4 py-8 max-w-6xl'>
       <div className='space-y-8'>
@@ -148,7 +152,7 @@ export default async function ProfilePage() {
                 {profile?.username?.charAt(0).toUpperCase() || 'U'}
               </span>
             </div>
-            <div>
+            <div className='flex-1'>
               <h1 className='text-2xl font-bold text-gray-900'>
                 {profile?.username || 'Anonymous User'}
               </h1>
@@ -164,6 +168,30 @@ export default async function ProfilePage() {
                 </p>
               )}
             </div>
+            
+            {/* Reputation Display */}
+            {reputation && (
+              <div className='flex items-center space-x-4'>
+                <div className='text-center'>
+                  <div className='text-2xl font-bold text-blue-600'>
+                    {reputation.reputation_score}
+                  </div>
+                  <div className='text-xs text-gray-500'>Reputation</div>
+                </div>
+                <div className='text-center'>
+                  <div className='text-2xl font-bold text-green-600'>
+                    {reputation.average_rating.toFixed(1)}
+                  </div>
+                  <div className='text-xs text-gray-500'>Rating</div>
+                </div>
+                <div className='text-center'>
+                  <div className='text-2xl font-bold text-purple-600'>
+                    {reputation.response_rate}%
+                  </div>
+                  <div className='text-xs text-gray-500'>Response Rate</div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -208,6 +236,117 @@ export default async function ProfilePage() {
               maxEvents={8}
               className="shadow-md"
             />
+          </div>
+        </div>
+
+        {/* Trust Badges Section */}
+        {reputation && reputation.trust_badges.length > 0 && (
+          <div className='bg-white rounded-lg shadow-md p-6'>
+            <h2 className='text-xl font-semibold mb-4'>Trust Badges</h2>
+            <div className='flex flex-wrap gap-2'>
+              {reputation.trust_badges.map((badge) => {
+                const badgeInfo = getBadgeInfo(badge.badge_type);
+                return (
+                  <div
+                    key={badge.id}
+                    className='inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800 border border-blue-200'
+                  >
+                    <span className='mr-1'>{badgeInfo.icon}</span>
+                    <span>{badgeInfo.name}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Profile Customization Link */}
+        <div className='bg-white rounded-lg shadow-md p-6'>
+          <div className='flex items-center justify-between'>
+            <div>
+              <h2 className='text-xl font-semibold mb-2'>Profile Customization</h2>
+              <p className='text-gray-600'>
+                Customize your avatar, bio, social links, and privacy settings
+              </p>
+            </div>
+            <a
+              href='/profile/customize'
+              className='px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors'
+            >
+              Customize Profile
+            </a>
+          </div>
+        </div>
+
+        {/* Analytics Dashboard Link */}
+        <div className='bg-white rounded-lg shadow-md p-6'>
+          <div className='flex items-center justify-between'>
+            <div>
+              <h2 className='text-xl font-semibold mb-2'>Analytics Dashboard</h2>
+              <p className='text-gray-600'>
+                Track your performance, monitor trends, and get AI-powered insights
+              </p>
+            </div>
+            <a
+              href='/analytics'
+              className='px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors'
+            >
+              View Analytics
+            </a>
+          </div>
+        </div>
+
+        {/* Game Collection Link */}
+        <div className='bg-white rounded-lg shadow-md p-6'>
+          <div className='flex items-center justify-between'>
+            <div>
+              <h2 className='text-xl font-semibold mb-2'>Game Collection</h2>
+              <p className='text-gray-600'>
+                Manage your personal board game library and wishlist
+              </p>
+            </div>
+            <a
+              href='/collection'
+              className='px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors'
+            >
+              Manage Collection
+            </a>
+          </div>
+        </div>
+
+        {/* Notifications Link */}
+        <div className='bg-white rounded-lg shadow-md p-6'>
+          <div className='flex items-center justify-between'>
+            <div>
+              <h2 className='text-xl font-semibold mb-2'>Smart Notifications</h2>
+              <p className='text-gray-600'>
+                Manage price alerts and notification preferences
+              </p>
+            </div>
+            <a
+              href='/notifications'
+              className='px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors'
+            >
+              Manage Notifications
+            </a>
+          </div>
+        </div>
+
+        {/* Gamification Link */}
+        <div className='bg-white rounded-lg shadow-md p-6'>
+          <div className='flex items-center justify-between'>
+            <div>
+              <h2 className='text-xl font-semibold mb-2'>Gamification Dashboard</h2>
+              <p className='text-gray-600'>
+                Track achievements, levels, and compete with other collectors
+              </p>
+            </div>
+            <a
+              href='/gamification'
+              className='px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors'
+            >
+              View Dashboard
+            </a>
           </div>
         </div>
 

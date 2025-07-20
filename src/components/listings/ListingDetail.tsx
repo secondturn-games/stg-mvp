@@ -314,7 +314,10 @@ export default function ListingDetail({ listing }: ListingDetailProps) {
             )}
 
             {listing.listing_type === 'fixed' && listing.price && (
-              <button className='w-full bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 transition-colors'>
+              <button 
+                onClick={() => router.push(`/payment/${listing.id}`)}
+                className='w-full bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 transition-colors'
+              >
                 Buy Now
               </button>
             )}
