@@ -1,8 +1,15 @@
 import { redirect } from 'next/navigation';
 import { auth } from '@clerk/nextjs/server';
 import { supabase } from '@/lib/supabase';
+import Image from 'next/image';
 import ProfileStats from '@/components/profile/ProfileStats';
 import ProfileActions from '@/components/profile/ProfileActions';
+import ProfileCompletionMeter from '@/components/ui/ProfileCompletionMeter';
+import ProfileStrengthIndicator from '@/components/ui/ProfileStrengthIndicator';
+import QuickActionsDashboard from '@/components/ui/QuickActionsDashboard';
+import ActivityTimeline from '@/components/ui/ActivityTimeline';
+import { calculateProfileCompletion } from '@/lib/profile-completion';
+import { calculateProfileStrength } from '@/lib/profile-strength';
 import {
   formatCurrency,
   formatRelativeTime,
@@ -117,6 +124,19 @@ export default async function ProfilePage() {
       gameTitle: purchase.listings?.games?.title?.en || 'Game',
     })) || [];
 
+  // Calculate profile completion and strength
+  const profileCompletion = calculateProfileCompletion(profile);
+  
+  // Calculate user stats for profile strength
+  const userStats = {
+    activeListings: formattedListings.filter(l => l.status === 'active').length,
+    totalListings: formattedListings.length,
+    totalTransactions: formattedPurchases.length,
+    totalVolume: formattedPurchases.reduce((sum, p) => sum + p.amount, 0),
+  };
+  
+  const profileStrength = calculateProfileStrength(profile, userStats);
+
   return (
     <div className='container mx-auto px-4 py-8 max-w-6xl'>
       <div className='space-y-8'>
@@ -147,14 +167,51 @@ export default async function ProfilePage() {
           </div>
         </div>
 
-        {/* Stats */}
-        <ProfileStats
-          listingsCount={formattedListings.length}
-          purchasesCount={formattedPurchases.length}
-          totalSpent={formattedPurchases.reduce((sum, p) => sum + p.amount, 0)}
-        />
+        {/* Profile Completion Meter */}
+        {profileCompletion.percentage < 100 && (
+          <ProfileCompletionMeter 
+            completion={profileCompletion} 
+            showDetails={false}
+            className="shadow-md"
+          />
+        )}
 
-        {/* Actions */}
+        {/* Dashboard Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left Column - Profile Strength & Quick Actions */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Profile Strength Indicator */}
+            <ProfileStrengthIndicator 
+              strength={profileStrength}
+              showDetails={false}
+              className="shadow-md"
+            />
+
+            {/* Quick Actions Dashboard */}
+            <QuickActionsDashboard
+              profileStrength={profileStrength}
+              userStats={userStats}
+              className="shadow-md"
+            />
+
+            {/* Stats */}
+            <ProfileStats
+              listingsCount={formattedListings.length}
+              purchasesCount={formattedPurchases.length}
+              totalSpent={formattedPurchases.reduce((sum, p) => sum + p.amount, 0)}
+            />
+          </div>
+
+          {/* Right Column - Activity Timeline */}
+          <div className="lg:col-span-1">
+            <ActivityTimeline
+              maxEvents={8}
+              className="shadow-md"
+            />
+          </div>
+        </div>
+
+        {/* Legacy Actions (keeping for compatibility) */}
         <ProfileActions />
 
         {/* Recent Activity */}
@@ -175,9 +232,11 @@ export default async function ProfilePage() {
                   >
                     <div className='w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center'>
                       {listing.photos && listing.photos.length > 0 ? (
-                        <img
+                        <Image
                           src={listing.photos[0]}
                           alt='Game'
+                          width={48}
+                          height={48}
                           className='w-full h-full object-cover rounded-lg'
                         />
                       ) : (
@@ -213,9 +272,11 @@ export default async function ProfilePage() {
                     <div className='w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center'>
                       {purchase.listings?.photos &&
                       purchase.listings.photos.length > 0 ? (
-                        <img
+                        <Image
                           src={purchase.listings.photos[0]}
                           alt='Game'
+                          width={48}
+                          height={48}
                           className='w-full h-full object-cover rounded-lg'
                         />
                       ) : (

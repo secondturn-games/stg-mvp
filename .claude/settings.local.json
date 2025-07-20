@@ -14,7 +14,13 @@
       "Bash(npm run build:*)",
       "Bash(find:*)",
       "Bash(ls:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(timeout 10 npm run dev)",
+      "Bash(npm run dev:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npx next build:*)",
+      "Bash(curl:*)",
+      "Bash(timeout 5 npm run dev)"
     ],
     "deny": []
   }

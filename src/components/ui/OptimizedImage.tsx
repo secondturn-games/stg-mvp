@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 
 interface OptimizedImageProps {
   src: string;
@@ -40,11 +41,13 @@ export default function OptimizedImage({
           <div className='text-gray-400'>Loading...</div>
         </div>
       )}
-      <img
+      <Image
         src={src}
         alt={alt}
+        width={400}
+        height={400}
         className={`w-full h-full object-cover ${isLoading ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`}
-        loading={priority ? 'eager' : 'lazy'}
+        priority={priority}
         onLoad={() => setIsLoading(false)}
         onError={() => {
           setIsLoading(false);

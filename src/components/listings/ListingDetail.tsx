@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import {
   MapPin,
   Calendar,
@@ -14,8 +15,6 @@ import {
 import {
   formatRelativeTime,
   getUserLocale,
-  formatDate,
-  formatTime,
 } from '@/lib/regional-settings';
 
 interface Listing {
@@ -121,9 +120,11 @@ export default function ListingDetail({ listing }: ListingDetailProps) {
           {/* Main Image */}
           <div className='aspect-square bg-gray-100 rounded-lg overflow-hidden'>
             {listing.photos && listing.photos.length > 0 ? (
-              <img
+              <Image
                 src={listing.photos[selectedImage]}
                 alt={gameTitle}
+                width={600}
+                height={600}
                 className='w-full h-full object-cover'
               />
             ) : (
@@ -149,9 +150,11 @@ export default function ListingDetail({ listing }: ListingDetailProps) {
                       : 'border-gray-200 hover:border-gray-300'
                   }`}
                 >
-                  <img
+                  <Image
                     src={photo}
                     alt={`${gameTitle} ${index + 1}`}
+                    width={150}
+                    height={150}
                     className='w-full h-full object-cover'
                   />
                 </button>
@@ -270,9 +273,11 @@ export default function ListingDetail({ listing }: ListingDetailProps) {
             <div className='flex items-center space-x-3'>
               <div className='w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center'>
                 {listing.users.avatar_url ? (
-                  <img
+                  <Image
                     src={listing.users.avatar_url}
                     alt={listing.users.username}
+                    width={48}
+                    height={48}
                     className='w-12 h-12 rounded-full'
                   />
                 ) : (

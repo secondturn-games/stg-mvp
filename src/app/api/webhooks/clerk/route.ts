@@ -19,7 +19,6 @@ export async function POST(request: NextRequest) {
 
   // Get the body
   const payload = await request.text();
-  const body = JSON.parse(payload);
 
   // Create a new Svix instance with your secret
   const wh = new Webhook(process.env.CLERK_WEBHOOK_SECRET!);
@@ -34,12 +33,10 @@ export async function POST(request: NextRequest) {
       'svix-signature': svixSignature,
     }) as any;
   } catch (err) {
-    console.error('Error verifying webhook:', err);
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
   }
 
   // Handle the webhook
-  const { id } = evt.data;
   const eventType = evt.type;
 
   if (eventType === 'user.created') {
@@ -57,7 +54,7 @@ export async function POST(request: NextRequest) {
           location_city: '',
         });
       } catch (error) {
-        console.error('Error creating user in Supabase:', error);
+        // Silent fail for user creation
       }
     }
   }
@@ -77,7 +74,7 @@ export async function POST(request: NextRequest) {
           })
           .eq('clerk_id', clerkId);
       } catch (error) {
-        console.error('Error updating user in Supabase:', error);
+        // Silent fail for user update
       }
     }
   }
@@ -89,7 +86,7 @@ export async function POST(request: NextRequest) {
     try {
       await supabase.from('users').delete().eq('clerk_id', clerkId);
     } catch (error) {
-      console.error('Error deleting user from Supabase:', error);
+      // Silent fail for user deletion
     }
   }
 

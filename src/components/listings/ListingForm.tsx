@@ -3,6 +3,7 @@
 import type { FC } from 'react';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import ImageUpload from './ImageUpload';
 import { getUserLocale } from '@/lib/regional-settings';
 import { Eye, X } from 'lucide-react';
@@ -713,9 +714,11 @@ const ListingForm: FC<ListingFormProps> = ({
               {/* Game Image */}
               <div className='aspect-square bg-gray-100 rounded-lg overflow-hidden'>
                 {formData.images && formData.images.length > 0 ? (
-                  <img
+                  <Image
                     src={formData.images[0]}
                     alt={formData.gameTitle}
+                    width={600}
+                    height={600}
                     className='w-full h-full object-cover'
                   />
                 ) : (

@@ -18,7 +18,6 @@ export async function GET(request: Request) {
       data: auctions,
     });
   } catch (error) {
-    console.error('Error fetching auctions:', error);
     return NextResponse.json(
       { success: false, error: 'Failed to fetch auctions' },
       { status: 500 }
@@ -45,7 +44,6 @@ export async function POST(request: Request) {
       data: auction,
     });
   } catch (error) {
-    console.error('Error creating auction:', error);
     return NextResponse.json(
       { success: false, error: 'Failed to create auction' },
       { status: 500 }

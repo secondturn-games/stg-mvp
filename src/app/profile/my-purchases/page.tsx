@@ -7,6 +7,7 @@ import {
   getUserLocale,
 } from '@/lib/regional-settings';
 import Link from 'next/link';
+import Image from 'next/image';
 import { ArrowLeft, CheckCircle } from 'lucide-react';
 
 export default async function MyPurchasesPage() {
@@ -156,9 +157,11 @@ export default async function MyPurchasesPage() {
                     <div className='w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center flex-shrink-0'>
                       {purchase.listings?.photos &&
                       purchase.listings.photos.length > 0 ? (
-                        <img
+                        <Image
                           src={purchase.listings.photos[0]}
                           alt={purchase.gameTitle}
+                          width={64}
+                          height={64}
                           className='w-full h-full object-cover rounded-lg'
                         />
                       ) : (

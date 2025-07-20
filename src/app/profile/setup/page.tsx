@@ -1,7 +1,7 @@
 import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
 import { getCurrentUserProfile } from '@/lib/user-service';
-import ProfileSetupForm from '@/components/profile/ProfileSetupForm';
+import EnhancedProfileSetupForm from '@/components/profile/EnhancedProfileSetupForm';
 
 export default async function ProfileSetupPage() {
   const { userId } = await auth();
@@ -18,23 +18,20 @@ export default async function ProfileSetupPage() {
   }
 
   return (
-    <div className='container mx-auto p-8 max-w-2xl'>
-      <div className='mb-8'>
+    <div className='container mx-auto p-8 max-w-4xl'>
+      <div className='mb-8 text-center'>
         <h1 className='text-3xl font-bold text-gray-900 mb-2'>
           Complete Your Profile
         </h1>
         <p className='text-gray-600'>
-          Welcome! Please complete your profile to start using Second Turn.
+          Welcome to Second Turn! Complete your profile to start buying and selling board games in the Baltic region.
         </p>
       </div>
 
-      <div className='bg-white rounded-lg shadow border p-6'>
-        <h2 className='text-xl font-semibold mb-4'>Profile Information</h2>
-        <ProfileSetupForm />
-      </div>
+      <EnhancedProfileSetupForm />
 
-      <div className='mt-6 p-4 bg-blue-50 rounded-lg'>
-        <h3 className='text-lg font-semibold mb-2'>
+      <div className='mt-8 p-4 bg-ivory rounded-lg border border-gray-200'>
+        <h3 className='text-lg font-semibold mb-2 text-forestDeep'>
           Why we need this information:
         </h3>
         <ul className='list-disc list-inside space-y-1 text-sm text-gray-600'>

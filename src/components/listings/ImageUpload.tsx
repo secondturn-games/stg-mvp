@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useRef } from 'react';
+import Image from 'next/image';
 import { Upload, X } from 'lucide-react';
 
 interface ImageUploadProps {
@@ -87,9 +88,11 @@ export default function ImageUpload({
           {images.map((img, i) => (
             <div key={`${img}-${i}`} className='relative group'>
               <div className='aspect-square bg-gray-100 rounded-lg overflow-hidden'>
-                <img
+                <Image
                   src={img}
                   alt={`Game image ${i + 1}`}
+                  width={200}
+                  height={200}
                   className='w-full h-full object-cover'
                 />
               </div>

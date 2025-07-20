@@ -7,6 +7,7 @@ import {
   getUserLocale,
 } from '@/lib/regional-settings';
 import Link from 'next/link';
+import Image from 'next/image';
 import { ArrowLeft, Edit, Clock, Gavel } from 'lucide-react';
 import DeleteButton from '@/components/listings/DeleteButton';
 
@@ -236,9 +237,11 @@ export default async function MyListingsPage() {
                     {/* Image */}
                     <div className='w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center flex-shrink-0'>
                       {item.photos && item.photos.length > 0 ? (
-                        <img
+                        <Image
                           src={item.photos[0]}
                           alt={item.gameTitle}
+                          width={64}
+                          height={64}
                           className='w-full h-full object-cover rounded-lg'
                         />
                       ) : (

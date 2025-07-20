@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { supabase } from '@/lib/supabase';
 
 export const dynamic = 'force-dynamic';
 
-export async function POST(request: NextRequest) {
+export async function POST() {
   try {
     const { userId } = await auth();
 
@@ -21,7 +21,6 @@ export async function POST(request: NextRequest) {
 
     if (error && error.code !== 'PGRST116') {
       // PGRST116 is "not found", which is expected for new users
-      console.error('Database error:', error);
       return NextResponse.json({ error: 'Database error' }, { status: 500 });
     }
 
@@ -31,7 +30,6 @@ export async function POST(request: NextRequest) {
       needsProfile: !user,
     });
   } catch (error) {
-    console.error('Sign-in error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

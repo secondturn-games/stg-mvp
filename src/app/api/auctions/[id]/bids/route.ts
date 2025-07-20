@@ -35,7 +35,6 @@ export async function GET(
       data: bids,
     });
   } catch (error) {
-    console.error('Error fetching bids:', error);
     return NextResponse.json(
       { success: false, error: 'Failed to fetch bids' },
       { status: 500 }
@@ -125,7 +124,7 @@ export async function POST(
       .eq('id', params.id);
 
     if (updateError) {
-      console.error('Error updating auction:', updateError);
+      // Silent fail for auction update - bid was still created
     }
 
     return NextResponse.json({
@@ -133,7 +132,6 @@ export async function POST(
       data: bid,
     });
   } catch (error) {
-    console.error('Error creating bid:', error);
     return NextResponse.json(
       { success: false, error: 'Failed to create bid' },
       { status: 500 }

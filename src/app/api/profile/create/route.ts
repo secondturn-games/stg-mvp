@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth, clerkClient } from '@clerk/nextjs/server';
-import { createUserProfile, userProfileExists } from '@/lib/user-service';
+import { userProfileExists } from '@/lib/user-service';
 import { supabase } from '@/lib/supabase';
 
 // Force dynamic rendering for this API route
@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create user profile
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('users')
       .insert({
         clerk_id: userId,
