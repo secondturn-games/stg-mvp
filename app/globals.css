@@ -1,0 +1,114 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 120 15% 18%; /* Dark Green equivalent */
+    --card: 0 0% 100%;
+    --card-foreground: 120 15% 18%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 120 15% 18%;
+    --primary: 14 75% 49%; /* Vibrant Orange */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 72 25% 88%; /* Light Beige */
+    --secondary-foreground: 120 15% 18%;
+    --muted: 72 25% 88%;
+    --muted-foreground: 120 15% 18%;
+    --accent: 48 87% 62%; /* Warm Yellow */
+    --accent-foreground: 120 15% 18%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 72 25% 88%;
+    --input: 72 25% 88%;
+    --ring: 14 75% 49%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 120 15% 18%;
+    --foreground: 72 25% 88%;
+    --card: 120 15% 18%;
+    --card-foreground: 72 25% 88%;
+    --popover: 120 15% 18%;
+    --popover-foreground: 72 25% 88%;
+    --primary: 14 75% 49%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 120 15% 25%;
+    --secondary-foreground: 72 25% 88%;
+    --muted: 120 15% 25%;
+    --muted-foreground: 72 25% 75%;
+    --accent: 48 87% 62%;
+    --accent-foreground: 120 15% 18%;
+    --destructive: 0 62% 30%;
+    --destructive-foreground: 72 25% 88%;
+    --border: 120 15% 25%;
+    --input: 120 15% 25%;
+    --ring: 14 75% 49%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-light-beige;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-vibrant-orange rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-vibrant-orange/80;
+}
+
+/* Custom focus styles */
+.focus-ring {
+  @apply focus:outline-none focus:ring-2 focus:ring-vibrant-orange focus:ring-offset-2;
+}
+
+/* Utility classes for the color palette */
+.bg-brand-primary {
+  @apply bg-vibrant-orange;
+}
+
+.bg-brand-secondary {
+  @apply bg-light-beige;
+}
+
+.bg-brand-accent {
+  @apply bg-warm-yellow;
+}
+
+.text-brand-primary {
+  @apply text-vibrant-orange;
+}
+
+.text-brand-secondary {
+  @apply text-dark-green;
+}
+
+.text-brand-accent {
+  @apply text-warm-yellow;
+}
+
+.border-brand-accent {
+  @apply border-warm-yellow;
+}
+
+.hover-brand-accent {
+  @apply hover:bg-warm-yellow/20;
+}

@@ -1,0 +1,27 @@
+{
+  "name": "Second Turn - Board Game Marketplace",
+  "short_name": "Second Turn",
+  "description": "Buy and sell board games in the Baltic region",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#E6EAD7",
+  "theme_color": "#D95323",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon-192x192-light.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512x512-light.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["shopping", "games", "social"],
+  "lang": "en",
+  "dir": "ltr"
+} 

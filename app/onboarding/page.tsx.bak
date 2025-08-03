@@ -1,0 +1,291 @@
+"use client"
+
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Upload, Dice1, Dice6, CheckCircle } from "lucide-react"
+import Link from "next/link"
+import { Navigation } from "@/components/navigation"
+import Image from "next/image"
+
+const steps = [
+  { id: 1, title: "Username", description: "Choose your unique username" },
+  { id: 2, title: "Location", description: "Set your country and city" },
+  { id: 3, title: "Profile", description: "Add a profile picture (optional)" },
+  { id: 4, title: "Complete", description: "Welcome to Second Turn!" },
+]
+
+export default function OnboardingPage() {
+  const [currentStep, setCurrentStep] = useState(1)
+  const [formData, setFormData] = useState({
+    username: "",
+    country: "",
+    city: "",
+    avatar: null,
+  })
+
+  const nextStep = () => {
+    if (currentStep < steps.length) {
+      setCurrentStep(currentStep + 1)
+    }
+  }
+
+  const prevStep = () => {
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1)
+    }
+  }
+
+  const handleComplete = () => {
+    // Redirect to marketplace
+    window.location.href = "/games"
+  }
+
+  return (
+    <div className="min-h-screen bg-light-beige">
+      <Navigation />
+      
+      <div className="flex items-center justify-center p-4">
+        <div className="w-full max-w-2xl">
+          {/* Logo */}
+          <div className="text-center mb-8">
+            <Link href="/" className="inline-flex items-center">
+              <Image
+                src="/nav-logo-light.svg"
+                alt="Second Turn"
+                width={175}
+                height={40}
+                className="h-10 w-auto"
+              />
+            </Link>
+          </div>
+
+        {/* Progress Steps */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between">
+            {steps.map((step, index) => (
+              <div key={step.id} className="flex items-center">
+                <div
+                  className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${
+                    currentStep > step.id
+                      ? "bg-vibrant-orange border-vibrant-orange text-white"
+                      : currentStep === step.id
+                        ? "border-vibrant-orange text-vibrant-orange"
+                        : "border-gray-300 text-gray-300"
+                  }`}
+                >
+                  {currentStep > step.id ? (
+                    <CheckCircle className="w-6 h-6" />
+                  ) : (
+                    <span className="font-semibold">{step.id}</span>
+                  )}
+                </div>
+                {index < steps.length - 1 && (
+                  <div className={`w-16 h-0.5 mx-2 ${currentStep > step.id ? "bg-vibrant-orange" : "bg-gray-300"}`} />
+                )}
+              </div>
+            ))}
+          </div>
+          <div className="flex justify-between mt-2">
+            {steps.map((step) => (
+              <div key={step.id} className="text-center" style={{ width: "calc(25% - 1rem)" }}>
+                <div className="text-sm font-medium text-gray-700">{step.title}</div>
+                <div className="text-xs text-gray-500">{step.description}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Step Content */}
+        <Card className="border-warm-yellow">
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl">
+              {currentStep === 1 && "Choose Your Username"}
+              {currentStep === 2 && "Set Your Location"}
+              {currentStep === 3 && "Add Profile Picture"}
+              {currentStep === 4 && "Welcome to Second Turn!"}
+            </CardTitle>
+            <CardDescription>
+              {currentStep === 1 && "This will be your unique identifier on the platform"}
+              {currentStep === 2 && "Help other users find games in your area"}
+              {currentStep === 3 && "Add a photo to personalize your profile (optional)"}
+              {currentStep === 4 && "You're all set to start trading board games!"}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Step 1: Username */}
+            {currentStep === 1 && (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="username">Username</Label>
+                  <Input
+                    id="username"
+                    placeholder="e.g., boardgamer_tallinn"
+                    value={formData.username}
+                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                    className="border-warm-yellow focus:border-vibrant-orange"
+                  />
+                  <div className="text-sm text-gray-500">Choose something memorable - you can't change this later</div>
+                </div>
+
+                {formData.username && (
+                  <div className="p-3 bg-warm-yellow/20 rounded-lg">
+                    <div className="text-sm text-dark-green">
+                      Your profile will be: <strong>secondturn.games/u/{formData.username}</strong>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Step 2: Location */}
+            {currentStep === 2 && (
+              <div className="space-y-4">
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="country">Country</Label>
+                    <Select
+                      value={formData.country}
+                      onValueChange={(value) => setFormData({ ...formData, country: value })}
+                    >
+                      <SelectTrigger className="border-warm-yellow focus:border-vibrant-orange">
+                        <SelectValue placeholder="Select your country" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="estonia">🇪🇪 Estonia</SelectItem>
+                        <SelectItem value="latvia">🇱🇻 Latvia</SelectItem>
+                        <SelectItem value="lithuania">🇱🇹 Lithuania</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="city">City</Label>
+                    <Input
+                      id="city"
+                      placeholder="e.g., Tallinn, Riga, Vilnius"
+                      value={formData.city}
+                      onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                      className="border-warm-yellow focus:border-vibrant-orange"
+                    />
+                  </div>
+                </div>
+
+                <div className="p-3 bg-light-beige rounded-lg">
+                  <div className="text-sm text-gray-600">
+                    <strong>Why we ask:</strong> This helps other users find games in their area and enables local
+                    pickup options.
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Step 3: Profile Picture */}
+            {currentStep === 3 && (
+              <div className="space-y-6">
+                <div className="flex flex-col items-center space-y-4">
+                  <Avatar className="w-24 h-24">
+                    <AvatarImage src={formData.avatar || "/placeholder.svg"} />
+                    <AvatarFallback className="text-2xl bg-warm-yellow text-dark-green">
+                      {formData.username ? formData.username[0].toUpperCase() : "?"}
+                    </AvatarFallback>
+                  </Avatar>
+
+                  <div className="text-center">
+                    <Button variant="outline" className="border-warm-yellow hover:bg-warm-yellow/20 bg-transparent">
+                      <Upload className="w-4 h-4 mr-2" />
+                      Upload Photo
+                    </Button>
+                    <div className="text-sm text-gray-500 mt-2">Optional - you can add this later in your profile</div>
+                  </div>
+                </div>
+
+                <div className="p-3 bg-light-beige rounded-lg">
+                  <div className="text-sm text-gray-600">
+                    <strong>Profile photos help build trust</strong> in our community. Users with photos get 3x more
+                    responses!
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Step 4: Complete */}
+            {currentStep === 4 && (
+              <div className="text-center space-y-6">
+                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
+                  <CheckCircle className="w-8 h-8 text-green-600" />
+                </div>
+
+                <div className="space-y-2">
+                  <h3 className="text-lg font-semibold">You're all set, {formData.username}!</h3>
+                  <p className="text-gray-600">
+                    Welcome to the Baltic board gaming community. Start exploring games or list your first item.
+                  </p>
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-4">
+                  <Card className="p-4 border-warm-yellow">
+                    <h4 className="font-semibold mb-2">Quick Start Tips</h4>
+                    <ul className="text-sm text-gray-600 space-y-1 text-left">
+                      <li>• Browse games by location</li>
+                      <li>• Use BGG integration when listing</li>
+                      <li>• Check seller ratings</li>
+                      <li>• Meet in public places</li>
+                    </ul>
+                  </Card>
+                  <Card className="p-4 border-warm-yellow">
+                    <h4 className="font-semibold mb-2">Community Guidelines</h4>
+                    <ul className="text-sm text-gray-600 space-y-1 text-left">
+                      <li>• Be honest about condition</li>
+                      <li>• Respond to messages promptly</li>
+                      <li>• Leave reviews after trades</li>
+                      <li>• Report any issues</li>
+                    </ul>
+                  </Card>
+                </div>
+              </div>
+            )}
+
+            {/* Navigation Buttons */}
+            <div className="flex justify-between pt-6">
+              {currentStep > 1 && currentStep < 4 && (
+                <Button variant="outline" onClick={prevStep} className="bg-transparent">
+                  Previous
+                </Button>
+              )}
+
+              {currentStep < 4 ? (
+                <Button
+                  onClick={nextStep}
+                  className="bg-vibrant-orange hover:bg-vibrant-orange/90 ml-auto"
+                  disabled={
+                    (currentStep === 1 && !formData.username) ||
+                    (currentStep === 2 && (!formData.country || !formData.city))
+                  }
+                >
+                  {currentStep === 3 ? "Complete Setup" : "Continue"}
+                </Button>
+              ) : (
+                <Button onClick={handleComplete} className="bg-vibrant-orange hover:bg-vibrant-orange/90 mx-auto">
+                  Start Trading!
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Skip Option */}
+        {currentStep === 3 && (
+          <div className="text-center mt-4">
+            <button onClick={nextStep} className="text-sm text-gray-500 hover:text-gray-700">
+              Skip for now
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}

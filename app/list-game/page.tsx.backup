@@ -1,0 +1,769 @@
+"use client"
+
+import { useState, useEffect, useCallback } from "react"
+import { useAuth } from "@/lib/auth-context"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Upload, X, Camera, MapPin, Euro, Package, Search, Dice1, Dice6, Menu, Plus, Clock, Gavel, Loader2, ChevronRight, ExternalLink, RotateCcw } from "lucide-react"
+import Link from "next/link"
+import { BGGSearch } from "@/components/bgg-search"
+import { PricingWidget } from "@/components/pricing-widget"
+import { BundleGameSearch } from "@/components/bundle-game-search"
+import { ExpansionSearch } from "@/components/expansion-search"
+import { Badge } from "@/components/ui/badge"
+import { debounce } from "lodash"
+import { Navigation } from "@/components/navigation"
+
+interface BGGGameDetails {
+  id: string
+  name: string
+  yearpublished: string
+  minplayers: string
+  maxplayers: string
+  playingtime: string
+  minage: string
+  description: string
+  thumbnail: string
+  image: string
+  rating: string
+  weight: string
+  rank: string
+  mechanics: string[]
+  categories: string[]
+  alternateNames: string[] // Add alternate names array
+  versions?: BGGGameVersion[]
+  type?: string // Added for search results
+}
+
+interface BGGGameVersion {
+  id: string
+  name: string
+  yearpublished: string
+  publisher: string
+  language: string
+  productcode: string
+  thumbnail: string
+  image: string
+  width: string
+  length: string
+  depth: string
+  weight: string
+}
+
+interface BGGSearchResult {
+  id: string
+  name: string
+  yearpublished?: string
+  rank?: string
+  average?: string
+  usersrated?: string
+  type?: string
+  alternateNames?: string[]
+  abstracts_rank?: string
+  cgs_rank?: string
+  childrensgames_rank?: string
+  familygames_rank?: string
+  partygames_rank?: string
+  strategygames_rank?: string
+  thematic_rank?: string
+  wargames_rank?: string
+  bayesaverage?: string
+  thumbnail?: string // Add thumbnail field
+}
+
+interface FormData {
+  title: string
+  year: string
+  players: string
+  playtime: string
+  age: string
+  description: string
+  condition: string
+  price: string
+  conditionNotes: string
+  country: string
+  city: string
+  includedItems: string[]
+  tradingOptions: string[]
+  listingType: "base-game" | "expansion" | "bundle"
+  saleType: "fixed-price" | "auction"
+  baseGame: string
+  expansions: string[]
+  bundleItems: string[]
+  // Version-specific fields
+  versionId: string
+  versionName: string
+  versionPublisher: string
+  versionLanguage: string
+  versionYear: string
+  versionProductCode: string
+  // Auction-specific fields
+  startingBid: string
+  reservePrice: string
+  buyNowPrice: string
+  auctionDuration: string
+  auctionEndTime: string
+  allowBuyNow: boolean
+  hasReserve: boolean
+}
+
+export default function ListGamePage() {
+  const { user } = useAuth()
+  const [currentStep, setCurrentStep] = useState<'sale-type' | 'search' | 'game-details' | 'listing-details'>('sale-type')
+  
+  // Sale type state
+  const [saleType, setSaleType] = useState<'fixed-price' | 'auction'>('fixed-price')
+  
+  // Search state
+  const [searchTerm, setSearchTerm] = useState("")
+  const [searchResults, setSearchResults] = useState<BGGSearchResult[]>([])
+  const [isSearching, setIsSearching] = useState(false)
+  const [searchError, setSearchError] = useState<string | null>(null)
+  
+  // Game selection state
+  const [selectedBGGGame, setSelectedBGGGame] = useState<BGGGameDetails | null>(null)
+  const [selectedVersion, setSelectedVersion] = useState<BGGGameVersion | null>(null)
+  const [selectedTitleVariant, setSelectedTitleVariant] = useState<string>("main-title")
+  
+  // Expansion state (subscription only)
+  const [selectedExpansions, setSelectedExpansions] = useState<BGGSearchResult[]>([])
+  const [showExpansionSearch, setShowExpansionSearch] = useState(false)
+  
+  // Form state (for later steps)
+  const [formData, setFormData] = useState<FormData>({
+    title: "",
+    year: "",
+    players: "",
+    playtime: "",
+    age: "",
+    description: "",
+    condition: "",
+    price: "",
+    conditionNotes: "",
+    country: "",
+    city: "",
+    includedItems: [],
+    tradingOptions: [],
+    listingType: "base-game",
+    saleType: "fixed-price",
+    baseGame: "",
+    expansions: [],
+    bundleItems: [],
+    versionId: "",
+    versionName: "",
+    versionPublisher: "",
+    versionLanguage: "",
+    versionYear: "",
+    versionProductCode: "",
+    startingBid: "",
+    reservePrice: "",
+    buyNowPrice: "",
+    auctionDuration: "7",
+    auctionEndTime: "",
+    allowBuyNow: false,
+    hasReserve: false,
+  })
+
+  // Debounced search function
+  const debouncedSearch = useCallback(
+    debounce(async (query: string) => {
+      const trimmedQuery = query.trim()
+      
+      // Clear results and errors if query is empty or too short
+      if (!trimmedQuery || trimmedQuery.length < 2) {
+        setSearchResults([])
+        setSearchError('')
+        return
+      }
+
+      console.log(`🔍 Frontend: Starting search for "${trimmedQuery}"`)
+      setIsSearching(true)
+      setSearchError('')
+
+      try {
+        const response = await fetch(`/api/bgg/search?query=${encodeURIComponent(trimmedQuery)}`)
+        
+        console.log(`🔍 Frontend: Response status: ${response.status}`)
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}))
+          console.error('🔍 Frontend: Search failed with status:', response.status, errorData)
+          throw new Error(`Search failed: ${response.status} - ${errorData.details || errorData.error || 'Unknown error'}`)
+        }
+
+        const data = await response.json()
+        console.log(`🔍 Frontend: Search response:`, { success: data.success, resultCount: data.results?.length })
+        
+        if (data.success) {
+          setSearchResults(data.results)
+        } else {
+          console.error('🔍 Frontend: Search returned success: false', data)
+          setSearchError(data.error || 'Search failed')
+        }
+      } catch (error) {
+        console.error('🔍 Frontend: Search error:', error)
+        setSearchError(error instanceof Error ? error.message : 'Search failed. Please try again.')
+      } finally {
+        setIsSearching(false)
+      }
+    }, 300),
+    []
+  )
+
+  useEffect(() => {
+    debouncedSearch(searchTerm)
+  }, [searchTerm, debouncedSearch])
+
+  // Clear results immediately when search term becomes too short
+  useEffect(() => {
+    const trimmedTerm = searchTerm.trim()
+    if (trimmedTerm.length < 2) {
+      setSearchResults([])
+      setSearchError('')
+    }
+  }, [searchTerm])
+
+  const handleGameSelect = (game: BGGGameDetails | null) => {
+    setSelectedBGGGame(game)
+    setSelectedVersion(null)
+    setSelectedTitleVariant("main-title")
+    setSelectedExpansions([])
+    
+    if (game) {
+      setFormData(prev => ({
+        ...prev,
+        title: game.name,
+        year: game.yearpublished,
+        players: `${game.minplayers}-${game.maxplayers}`,
+        playtime: game.playingtime,
+        age: game.minage,
+        listingType: game.type === 'expansion' ? 'expansion' : 'base-game',
+        versionId: "",
+        versionName: "",
+        versionPublisher: "",
+        versionLanguage: "",
+        versionYear: "",
+        versionProductCode: "",
+        expansions: [],
+      }))
+    }
+    
+    setCurrentStep('game-details')
+  }
+
+  const handleNextStep = () => {
+    if (currentStep === 'sale-type') {
+      setCurrentStep('search')
+    } else if (currentStep === 'search' && selectedBGGGame) {
+      setCurrentStep('game-details')
+    } else if (currentStep === 'game-details') {
+      setCurrentStep('listing-details')
+    }
+  }
+
+  const handleBackStep = () => {
+    if (currentStep === 'search') {
+      setCurrentStep('sale-type')
+    } else if (currentStep === 'game-details') {
+      setCurrentStep('search')
+    } else if (currentStep === 'listing-details') {
+      setCurrentStep('game-details')
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-light-beige">
+      <div className="container mx-auto px-4 py-8 max-w-4xl">
+          {/* Header */}
+          <div className="text-center mb-6 lg:mb-8">
+            <h1 className="text-2xl lg:text-3xl font-bold text-dark-green">Create New Listing</h1>
+          </div>
+
+          {/* Step Indicator - Mobile First */}
+          <div className="mb-6 lg:mb-8">
+            {/* Mobile: Compact horizontal steps */}
+            <div className="flex justify-center lg:hidden">
+              <div className="flex items-center space-x-2">
+                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${
+                  currentStep === 'sale-type' ? 'bg-vibrant-orange text-white' : 'bg-gray-200 text-gray-500'
+                }`}>
+                  1
+                </div>
+                <div className={`w-8 h-0.5 ${
+                  currentStep === 'search' || currentStep === 'game-details' || currentStep === 'listing-details' ? 'bg-vibrant-orange' : 'bg-gray-200'
+                }`}></div>
+                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${
+                  currentStep === 'search' ? 'bg-vibrant-orange text-white' : 
+                  currentStep === 'game-details' || currentStep === 'listing-details' ? 'bg-gray-300 text-gray-600' : 'bg-gray-200 text-gray-500'
+                }`}>
+                  2
+                </div>
+                <div className={`w-8 h-0.5 ${
+                  currentStep === 'game-details' || currentStep === 'listing-details' ? 'bg-vibrant-orange' : 'bg-gray-200'
+                }`}></div>
+                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${
+                  currentStep === 'game-details' ? 'bg-vibrant-orange text-white' : 
+                  currentStep === 'listing-details' ? 'bg-gray-300 text-gray-600' : 'bg-gray-200 text-gray-500'
+                }`}>
+                  3
+                </div>
+                <div className={`w-8 h-0.5 ${
+                  currentStep === 'listing-details' ? 'bg-vibrant-orange' : 'bg-gray-200'
+                }`}></div>
+                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${
+                  currentStep === 'listing-details' ? 'bg-vibrant-orange text-white' : 'bg-gray-200 text-gray-500'
+                }`}>
+                  4
+                </div>
+              </div>
+            </div>
+
+            {/* Desktop: Full step indicator with labels */}
+            <div className="hidden lg:flex justify-center">
+              <div className="flex items-center space-x-4">
+                <div className={`flex items-center ${currentStep === 'sale-type' ? 'text-vibrant-orange' : 'text-gray-400'}`}>
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${currentStep === 'sale-type' ? 'bg-vibrant-orange text-white' : 'bg-gray-200'}`}>
+                    1
+                  </div>
+                  <span className="ml-2 text-sm">Sale Type</span>
+                </div>
+                <div className={`w-8 h-1 ${currentStep === 'search' || currentStep === 'game-details' || currentStep === 'listing-details' ? 'bg-vibrant-orange' : 'bg-gray-200'}`}></div>
+                <div className={`flex items-center ${currentStep === 'search' ? 'text-vibrant-orange' : currentStep === 'game-details' || currentStep === 'listing-details' ? 'text-gray-600' : 'text-gray-400'}`}>
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${currentStep === 'search' ? 'bg-vibrant-orange text-white' : currentStep === 'game-details' || currentStep === 'listing-details' ? 'bg-gray-300' : 'bg-gray-200'}`}>
+                    2
+                  </div>
+                  <span className="ml-2 text-sm">Find Game</span>
+                </div>
+                <div className={`w-8 h-1 ${currentStep === 'game-details' || currentStep === 'listing-details' ? 'bg-vibrant-orange' : 'bg-gray-200'}`}></div>
+                <div className={`flex items-center ${currentStep === 'game-details' ? 'text-vibrant-orange' : currentStep === 'listing-details' ? 'text-gray-600' : 'text-gray-400'}`}>
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${currentStep === 'game-details' ? 'bg-vibrant-orange text-white' : currentStep === 'listing-details' ? 'bg-gray-300' : 'bg-gray-200'}`}>
+                    3
+                  </div>
+                  <span className="ml-2 text-sm">Game Details</span>
+                </div>
+                <div className={`w-8 h-1 ${currentStep === 'listing-details' ? 'bg-vibrant-orange' : 'bg-gray-200'}`}></div>
+                <div className={`flex items-center ${currentStep === 'listing-details' ? 'text-vibrant-orange' : 'text-gray-400'}`}>
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${currentStep === 'listing-details' ? 'bg-vibrant-orange text-white' : 'bg-gray-200'}`}>
+                    4
+                  </div>
+                  <span className="ml-2 text-sm">Listing Details</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Step Content */}
+          {currentStep === 'sale-type' && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-dark-green text-lg sm:text-xl">Choose Sale Type</CardTitle>
+                <CardDescription className="text-sm">Select how you want to sell your game</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 gap-4">
+                  <div
+                    className={`p-4 border-2 rounded-lg cursor-pointer transition-colors ${
+                      saleType === 'fixed-price' 
+                        ? 'border-vibrant-orange bg-warm-yellow/10' 
+                        : 'border-gray-200 hover:border-vibrant-orange/50'
+                    }`}
+                    onClick={() => setSaleType('fixed-price')}
+                  >
+                    <div className="flex items-center space-x-3">
+                      <div className={`w-4 h-4 rounded-full border-2 flex-shrink-0 ${
+                        saleType === 'fixed-price' ? 'border-vibrant-orange bg-vibrant-orange' : 'border-gray-300'
+                      }`}></div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-dark-green text-sm lg:text-base">Fixed Price</h3>
+                        <p className="text-xs lg:text-sm text-gray-600">Set a specific price for your game</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div
+                    className={`p-4 border-2 rounded-lg cursor-pointer transition-colors ${
+                      saleType === 'auction' 
+                        ? 'border-vibrant-orange bg-warm-yellow/10' 
+                        : 'border-gray-200 hover:border-vibrant-orange/50'
+                    }`}
+                    onClick={() => setSaleType('auction')}
+                  >
+                    <div className="flex items-center space-x-3">
+                      <div className={`w-4 h-4 rounded-full border-2 flex-shrink-0 ${
+                        saleType === 'auction' ? 'border-vibrant-orange bg-vibrant-orange' : 'border-gray-300'
+                      }`}></div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-dark-green text-sm lg:text-base">Auction</h3>
+                        <p className="text-xs lg:text-sm text-gray-600">Let buyers bid on your game</p>
+                        <Badge variant="outline" className="mt-1 text-xs">Premium Feature</Badge>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex justify-end">
+                  <Button onClick={handleNextStep} className="bg-vibrant-orange hover:bg-vibrant-orange/90">
+                    Continue
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {currentStep === 'search' && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg lg:text-xl text-dark-green">Find Your Game</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Search Input */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-end">
+                    {searchResults.length > 0 && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setSearchTerm("")
+                          setSearchResults([])
+                          setSearchError(null)
+                        }}
+                        className="text-xs"
+                      >
+                        <RotateCcw className="w-3 h-3 mr-1" />
+                        New Search
+                      </Button>
+                    )}
+                  </div>
+                  <Input
+                    id="search"
+                    placeholder="Enter at least 2 characters to search for games..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="border-warm-yellow focus:border-vibrant-orange placeholder:text-gray-400 text-sm lg:text-base"
+                  />
+                </div>
+
+                {/* Search Results */}
+                {isSearching && (
+                  <div className="flex items-center justify-center py-6 lg:py-8">
+                    <Loader2 className="w-5 h-5 lg:w-6 lg:h-6 animate-spin text-vibrant-orange" />
+                    <span className="ml-2 text-sm lg:text-base text-gray-600">Searching...</span>
+                  </div>
+                )}
+
+                {/* Helpful hint for short queries */}
+                {searchTerm.trim().length > 0 && searchTerm.trim().length < 2 && !isSearching && (
+                  <div className="p-3 bg-light-green/50 border border-light-green rounded-lg">
+                    <p className="text-sm lg:text-base text-dark-green">
+                      💡 Please enter at least 2 characters to search for games
+                    </p>
+                  </div>
+                )}
+
+                {searchError && (
+                  <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <p className="text-sm lg:text-base text-red-700">{searchError}</p>
+                  </div>
+                )}
+
+                {searchResults.length > 0 && (
+                  <div className="space-y-2">
+                    <Label className="text-sm lg:text-base font-medium">Search Results:</Label>
+                    <div className="max-h-64 lg:max-h-96 overflow-y-auto space-y-2">
+                      {searchResults.map((game) => (
+                        <Card
+                          key={game.id}
+                          className="cursor-pointer transition-all hover:shadow-md hover:border-warm-yellow"
+                          onClick={() => handleGameSelect(game as any)}
+                        >
+                          <CardContent className="p-3 lg:p-4">
+                            <div className="flex items-center space-x-3">
+                              {/* Game Thumbnail */}
+                              {game.thumbnail ? (
+                                <img 
+                                  src={game.thumbnail} 
+                                  alt={game.name}
+                                  className="w-12 h-12 lg:w-16 lg:h-16 object-cover rounded flex-shrink-0"
+                                  onError={(e) => {
+                                    e.currentTarget.style.display = 'none'
+                                  }}
+                                />
+                              ) : (
+                                <div className="w-12 h-12 lg:w-16 lg:h-16 bg-gray-200 rounded flex-shrink-0 flex items-center justify-center">
+                                  <span className="text-gray-400 text-xs">🎲</span>
+                                </div>
+                              )}
+                              
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center space-x-2">
+                                  <h4 className="font-medium text-sm lg:text-base truncate">{game.name}</h4>
+                                  {game.yearpublished && (
+                                    <Badge variant="secondary" className="text-xs">
+                                      {game.yearpublished}
+                                    </Badge>
+                                  )}
+                                  {game.rank && parseInt(game.rank) > 0 && game.type !== 'expansion' && (
+                                    <Badge className="bg-vibrant-orange text-white text-xs">
+                                      #{game.rank}
+                                    </Badge>
+                                  )}
+                                  <Badge 
+                                    variant={game.type === 'expansion' ? 'outline' : 'default'} 
+                                    className={`text-xs px-1.5 py-0.5 ${
+                                      game.type === 'expansion' 
+                                        ? 'border-vibrant-orange text-vibrant-orange' 
+                                        : 'bg-dark-green text-white'
+                                    }`}
+                                  >
+                                    {game.type === 'expansion' ? 'Expansion' : 'Base Game'}
+                                  </Badge>
+                                </div>
+                                
+                                {/* Category Rank Badges */}
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                  {game.familygames_rank && parseInt(game.familygames_rank) > 0 && (
+                                    <Badge variant="outline" className="text-xs border-blue-300 text-blue-700">
+                                      #{game.familygames_rank} Family
+                                    </Badge>
+                                  )}
+                                  {game.strategygames_rank && parseInt(game.strategygames_rank) > 0 && (
+                                    <Badge variant="outline" className="text-xs border-purple-300 text-purple-700">
+                                      #{game.strategygames_rank} Strategy
+                                    </Badge>
+                                  )}
+                                  {game.partygames_rank && parseInt(game.partygames_rank) > 0 && (
+                                    <Badge variant="outline" className="text-xs border-pink-300 text-pink-700">
+                                      #{game.partygames_rank} Party
+                                    </Badge>
+                                  )}
+                                  {game.thematic_rank && parseInt(game.thematic_rank) > 0 && (
+                                    <Badge variant="outline" className="text-xs border-red-300 text-red-700">
+                                      #{game.thematic_rank} Thematic
+                                    </Badge>
+                                  )}
+                                  {game.childrensgames_rank && parseInt(game.childrensgames_rank) > 0 && (
+                                    <Badge variant="outline" className="text-xs border-green-300 text-green-700">
+                                      #{game.childrensgames_rank} Children
+                                    </Badge>
+                                  )}
+                                  {game.wargames_rank && parseInt(game.wargames_rank) > 0 && (
+                                    <Badge variant="outline" className="text-xs border-gray-300 text-gray-700">
+                                      #{game.wargames_rank} War
+                                    </Badge>
+                                  )}
+                                  {game.abstracts_rank && parseInt(game.abstracts_rank) > 0 && (
+                                    <Badge variant="outline" className="text-xs border-yellow-300 text-yellow-700">
+                                      #{game.abstracts_rank} Abstract
+                                    </Badge>
+                                  )}
+                                  {game.cgs_rank && parseInt(game.cgs_rank) > 0 && (
+                                    <Badge variant="outline" className="text-xs border-indigo-300 text-indigo-700">
+                                      #{game.cgs_rank} CGS
+                                    </Badge>
+                                  )}
+                                </div>
+                                
+                                <div className="flex items-center space-x-2 mt-1">
+                                  <span className="text-xs text-gray-500">BGG ID: {game.id}</span>
+                                  {game.bayesaverage && (
+                                    <span 
+                                      className="text-xs font-medium"
+                                      style={{
+                                        color: parseFloat(game.bayesaverage) >= 7.0 ? '#059669' : 
+                                               parseFloat(game.bayesaverage) >= 6.0 ? '#D97706' : '#DC2626'
+                                      }}
+                                    >
+                                      ★ {parseFloat(game.bayesaverage).toFixed(1)}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex justify-between pt-4">
+                  <Button variant="outline" onClick={handleBackStep} size="sm" className="text-sm">
+                    Back
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {currentStep === 'game-details' && selectedBGGGame && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-dark-green text-lg sm:text-xl">Game Details</CardTitle>
+                <CardDescription className="text-sm">Configure your game listing details</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Selected Game Display */}
+                <div className="p-3 lg:p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex items-start space-x-3 lg:space-x-4">
+                    {selectedBGGGame.thumbnail && (
+                      <img 
+                        src={selectedBGGGame.thumbnail} 
+                        alt={selectedBGGGame.name}
+                        className="w-12 h-12 lg:w-16 lg:h-16 object-cover rounded flex-shrink-0"
+                      />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-blue-800 text-sm lg:text-base truncate">{selectedBGGGame.name}</h3>
+                      <p className="text-xs lg:text-sm text-blue-700">
+                        {selectedBGGGame.yearpublished} • {selectedBGGGame.minplayers}-{selectedBGGGame.maxplayers} players
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Game Title Selection */}
+                <div className="space-y-2">
+                  <Label htmlFor="title" className="text-sm font-medium">Game Title</Label>
+                  <Select
+                    value={selectedTitleVariant}
+                    onValueChange={(value) => {
+                      setSelectedTitleVariant(value)
+                      if (value === "main-title") {
+                        setFormData(prev => ({ ...prev, title: selectedBGGGame.name }))
+                      } else {
+                        setFormData(prev => ({ ...prev, title: value }))
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="text-sm">
+                      <SelectValue placeholder="Select a title variant" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="main-title">Main Title ({selectedBGGGame.name})</SelectItem>
+                      {selectedBGGGame.alternateNames && selectedBGGGame.alternateNames.map((altName) => (
+                        <SelectItem key={altName} value={altName}>
+                          {altName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Version Selection */}
+                {selectedBGGGame.versions && selectedBGGGame.versions.length > 0 && (
+                  <div className="space-y-2">
+                    <Label htmlFor="version" className="text-sm font-medium">Game Version (Optional)</Label>
+                    <Select
+                      value={selectedVersion?.id || "main-game"}
+                      onValueChange={(value) => {
+                        if (value === "main-game") {
+                          setSelectedVersion(null)
+                          setFormData(prev => ({
+                            ...prev,
+                            versionId: "",
+                            versionName: "",
+                            versionPublisher: "",
+                            versionLanguage: "",
+                            versionYear: "",
+                            versionProductCode: "",
+                          }))
+                        } else {
+                          const version = selectedBGGGame.versions?.find(v => v.id === value) || null
+                          setSelectedVersion(version)
+                          if (version) {
+                            setFormData(prev => ({
+                              ...prev,
+                              versionId: version.id,
+                              versionName: version.name,
+                              versionPublisher: version.publisher,
+                              versionLanguage: version.language,
+                              versionYear: version.yearpublished,
+                              versionProductCode: version.productcode,
+                            }))
+                          }
+                        }
+                      }}
+                    >
+                      <SelectTrigger className="text-sm">
+                        <SelectValue placeholder="Select a specific version/edition" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="main-game">Main Game (No specific version)</SelectItem>
+                        {selectedBGGGame.versions.map((version) => (
+                          <SelectItem key={version.id} value={version.id}>
+                            <div className="text-sm">
+                              <div className="font-medium">{version.name}</div>
+                              <div className="text-xs text-gray-500">({version.language}, {version.yearpublished})</div>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                {/* Add Expansions (Subscription Only) */}
+                {formData.listingType === "base-game" && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm font-medium">Add Expansions & Promos</Label>
+                      <Badge variant="outline" className="text-xs">Premium Feature</Badge>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setShowExpansionSearch(true)}
+                      className="w-full border-warm-yellow text-dark-green hover:bg-warm-yellow/10 text-sm"
+                      disabled
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Expansion or Promo (Premium)
+                    </Button>
+                  </div>
+                )}
+
+                <div className="flex justify-between pt-4">
+                  <Button variant="outline" onClick={handleBackStep} size="sm" className="text-sm">
+                    Back
+                  </Button>
+                  <Button onClick={handleNextStep} className="bg-vibrant-orange hover:bg-vibrant-orange/90 text-sm">
+                    Continue
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {currentStep === 'listing-details' && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-dark-green text-lg lg:text-xl">Listing Details</CardTitle>
+                <CardDescription className="text-sm">Configure your listing details</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="text-center py-6 lg:py-8">
+                  <p className="text-gray-600 text-sm lg:text-base">This step will be implemented next</p>
+                  <p className="text-xs lg:text-sm text-gray-500 mt-2">Description, condition, price, photos, etc.</p>
+                </div>
+                
+                <div className="flex justify-between pt-4">
+                  <Button variant="outline" onClick={handleBackStep} size="sm" className="text-sm">
+                    Back
+                  </Button>
+                  <Button disabled className="bg-vibrant-orange hover:bg-vibrant-orange/90 text-sm">
+                    Create Listing
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
