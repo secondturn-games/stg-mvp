@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Loader2, Plus, Euro, Gavel, ExternalLink } from "lucide-react"
+import { Loader2, Plus, Euro, Gavel, ExternalLink, Star, Package } from "lucide-react"
 import { Navigation } from "@/components/navigation"
 
 interface BGGGameDetails {
@@ -36,8 +36,8 @@ interface BGGGameVersion {
   id: string
   name: string
   yearpublished: string
-  publisher: string
-  language: string
+  publishers: string[]
+  languages: string[]
   productcode: string
   thumbnail: string
   image: string
@@ -228,13 +228,22 @@ export default function ListGamePage() {
     }
   }, [])
 
-  const handleGameSelect = (game: BGGGameDetails | null) => {
-    setSelectedBGGGame(game)
-    setSelectedVersion(null)
-    setSelectedTitleVariant("main-title")
-    setSelectedExpansions([])
-    
-    if (game) {
+  const handleGameSelect = async (game: BGGSearchResult | BGGGameDetails | null) => {
+    if (!game) {
+      setSelectedBGGGame(null)
+      setSelectedVersion(null)
+      setSelectedTitleVariant("main-title")
+      setSelectedExpansions([])
+      return
+    }
+
+    // If it's already a BGGGameDetails object (has versions), use it directly
+    if ('versions' in game) {
+      setSelectedBGGGame(game as BGGGameDetails)
+      setSelectedVersion(null)
+      setSelectedTitleVariant("main-title")
+      setSelectedExpansions([])
+      
       setFormData(prev => ({
         ...prev,
         title: game.name,
@@ -245,6 +254,77 @@ export default function ListGamePage() {
         description: game.description,
         baseGame: game.id,
       }))
+      setCurrentStep('game-details')
+      return
+    }
+
+    // If it's a BGGSearchResult, fetch the full game details
+    try {
+      console.log(`🔍 Fetching full details for game ${game.id}: ${game.name}`)
+      const response = await fetch(`/api/bgg/game/${game.id}`)
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch game details: ${response.status}`)
+      }
+      
+      const responseData = await response.json()
+      const gameDetails: BGGGameDetails = responseData.game
+      console.log(`✅ Fetched game details for ${gameDetails.name}, versions: ${gameDetails.versions?.length || 0}`)
+      
+      setSelectedBGGGame(gameDetails)
+      setSelectedVersion(null)
+      setSelectedTitleVariant("main-title")
+      setSelectedExpansions([])
+      
+      setFormData(prev => ({
+        ...prev,
+        title: gameDetails.name,
+        year: gameDetails.yearpublished,
+        players: `${gameDetails.minplayers}-${gameDetails.maxplayers}`,
+        playtime: gameDetails.playingtime,
+        age: gameDetails.minage,
+        description: gameDetails.description,
+        baseGame: gameDetails.id,
+      }))
+      setCurrentStep('game-details')
+    } catch (error) {
+      console.error('Error fetching game details:', error)
+      // Fallback to using the search result data
+      const fallbackGame: BGGGameDetails = {
+         id: game.id,
+         name: game.name,
+         yearpublished: game.yearpublished || '',
+         minplayers: '',
+         maxplayers: '',
+         playingtime: '',
+         minage: '',
+         description: '',
+         thumbnail: game.thumbnail || '',
+         image: '',
+         rating: (game as BGGSearchResult).bayesaverage || '',
+         weight: '',
+         rank: (game as BGGSearchResult).rank || '',
+         mechanics: [],
+         categories: [],
+         alternateNames: (game as BGGSearchResult).alternateNames || [],
+         type: game.type,
+       }
+       
+       setSelectedBGGGame(fallbackGame)
+       setSelectedVersion(null)
+       setSelectedTitleVariant("main-title")
+       setSelectedExpansions([])
+       
+       setFormData(prev => ({
+         ...prev,
+         title: fallbackGame.name,
+         year: fallbackGame.yearpublished,
+         players: `${fallbackGame.minplayers}-${fallbackGame.maxplayers}`,
+         playtime: fallbackGame.playingtime,
+         age: fallbackGame.minage,
+         description: fallbackGame.description,
+         baseGame: fallbackGame.id,
+       }))
       setCurrentStep('game-details')
     }
   }
@@ -268,6 +348,8 @@ export default function ListGamePage() {
       setCurrentStep('game-details')
     }
   }
+
+
 
   return (
     <div className="min-h-screen bg-light-beige">
@@ -558,7 +640,7 @@ export default function ListGamePage() {
                       <Card
                         key={game.id}
                         className="cursor-pointer transition-all hover:shadow-md hover:border-warm-yellow"
-                        onClick={() => handleGameSelect(game as any)}
+                        onClick={() => handleGameSelect(game)}
                       >
                         <CardContent className="p-3 lg:p-4">
                           <div className="flex items-center space-x-3">
@@ -566,13 +648,13 @@ export default function ListGamePage() {
                               <img 
                                 src={game.thumbnail} 
                                 alt={game.name}
-                                className="w-12 h-12 lg:w-16 lg:h-16 object-cover rounded flex-shrink-0"
+                                className="w-14 h-14 lg:w-18 lg:h-18 object-cover rounded-lg flex-shrink-0 shadow-sm"
                                 onError={(e) => {
                                   e.currentTarget.style.display = 'none'
                                 }}
                               />
                             ) : (
-                              <div className="w-12 h-12 lg:w-16 lg:h-16 bg-gray-200 rounded flex-shrink-0 flex items-center justify-center">
+                              <div className="w-14 h-14 lg:w-18 lg:h-18 bg-gray-200 rounded-lg flex-shrink-0 flex items-center justify-center shadow-sm">
                                 <span className="text-gray-400 text-xs">🎲</span>
                               </div>
                             )}
@@ -661,13 +743,13 @@ export default function ListGamePage() {
           </Card>
         )}
 
-        {currentStep === 'game-details' && selectedBGGGame && (
+        {currentStep === 'game-details' && (
           <Card>
             <CardHeader className="relative">
               <div className="flex justify-between items-start">
                 <div className="flex-1">
                   <CardTitle className="text-dark-green text-lg lg:text-xl">Game Details</CardTitle>
-                  <CardDescription className="text-sm">Configure your game listing details</CardDescription>
+                  <CardDescription className="text-sm">Review and customize your game information</CardDescription>
                 </div>
                 <div className="ml-4 flex-shrink-0">
                   <a
@@ -687,54 +769,170 @@ export default function ListGamePage() {
               </div>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="p-3 lg:p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <div className="flex items-start space-x-3 lg:space-x-4">
-                  {selectedBGGGame.thumbnail && (
-                    <img 
-                      src={selectedBGGGame.thumbnail} 
-                      alt={selectedBGGGame.name}
-                      className="w-12 h-12 lg:w-16 lg:h-16 object-cover rounded flex-shrink-0"
+                                          {/* Selected Game Display */}
+              <div className="bg-light-beige/50 rounded-lg p-4 border border-warm-yellow/20">
+                {/* Mobile: Vertical layout */}
+                <div className="block lg:hidden">
+                  {/* Image centered on top */}
+                  <div className="flex justify-center mb-4">
+                    <Image
+                      src={selectedVersion?.image || selectedVersion?.thumbnail || selectedBGGGame?.image || selectedBGGGame?.thumbnail || "/placeholder-game.jpg"}
+                      alt={selectedVersion?.name || selectedBGGGame?.name || "Game thumbnail"}
+                      width={100}
+                      height={100}
+                      className="rounded-lg object-cover shadow-sm"
                     />
-                  )}
+                  </div>
+                  
+                  {/* Content below image */}
+                  <div className="text-center">
+                    {/* Title */}
+                    <h3 className="font-semibold text-[#29432B] text-lg mb-1">
+                      {selectedTitleVariant === "main-title" 
+                        ? selectedBGGGame?.name || 'Unknown Game'
+                        : selectedTitleVariant
+                      }
+                    </h3>
+                    
+                    {/* Subtitle - Version Name */}
+                    {selectedVersion && (
+                      <p className="text-sm text-vibrant-orange font-medium mb-3">
+                        {selectedVersion.name}
+                      </p>
+                    )}
+                    
+                    {/* Basic Stats */}
+                    <div className="flex flex-wrap items-center justify-center gap-1.5 mb-3">
+                      <Badge variant="outline" className="text-xs border-dark-green text-dark-green">
+                        {selectedVersion?.yearpublished || selectedBGGGame?.yearpublished || 'N/A'}
+                      </Badge>
+                      <Badge variant="outline" className="text-xs border-dark-green text-dark-green">
+                        {selectedBGGGame?.minplayers || '?'}-{selectedBGGGame?.maxplayers || '?'} players
+                      </Badge>
+                      {selectedBGGGame?.minage && selectedBGGGame.minage !== '0' && (
+                        <Badge variant="outline" className="text-xs border-dark-green text-dark-green">
+                          {selectedBGGGame.minage}+
+                        </Badge>
+                      )}
+                      {selectedBGGGame?.playingtime && (
+                        <Badge variant="outline" className="text-xs border-dark-green text-dark-green">
+                          ~{selectedBGGGame.playingtime} min
+                        </Badge>
+                      )}
+                      {selectedBGGGame?.type === 'expansion' && (
+                        <Badge className="bg-dark-green text-white text-xs">
+                          Expansion
+                        </Badge>
+                      )}
+                    </div>
+                    
+                                         {/* Version-specific info */}
+                     {selectedVersion && (
+                       <div className="flex flex-wrap items-center justify-center gap-1.5">
+                         {selectedVersion.languages && selectedVersion.languages.length > 0 && (
+                           <Badge variant="outline" className="text-xs border-vibrant-orange text-vibrant-orange">
+                             {selectedVersion.languages.join(', ')}
+                           </Badge>
+                         )}
+                         {selectedVersion.publishers && selectedVersion.publishers.length > 0 && (
+                           <Badge variant="outline" className="text-xs border-dark-green text-dark-green">
+                             {selectedVersion.publishers.join(', ')}
+                           </Badge>
+                         )}
+                       </div>
+                     )}
+                  </div>
+                </div>
+                
+                {/* Desktop: Horizontal layout */}
+                <div className="hidden lg:flex items-start space-x-4">
+                  <div className="flex-shrink-0">
+                    <Image
+                      src={selectedVersion?.image || selectedVersion?.thumbnail || selectedBGGGame?.image || selectedBGGGame?.thumbnail || "/placeholder-game.jpg"}
+                      alt={selectedVersion?.name || selectedBGGGame?.name || "Game thumbnail"}
+                      width={100}
+                      height={100}
+                      className="rounded-lg object-cover shadow-sm"
+                    />
+                  </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-blue-800 text-sm lg:text-base truncate">{selectedBGGGame.name}</h3>
-                    <p className="text-xs lg:text-sm text-blue-700">
-                      {selectedBGGGame.yearpublished} • {selectedBGGGame.minplayers}-{selectedBGGGame.maxplayers} players
-                    </p>
+                    {/* Title */}
+                    <h3 className="font-semibold text-[#29432B] text-lg truncate mb-1">
+                      {selectedTitleVariant === "main-title" 
+                        ? selectedBGGGame?.name || 'Unknown Game'
+                        : selectedTitleVariant
+                      }
+                    </h3>
+                    
+                    {/* Subtitle - Version Name */}
+                    {selectedVersion && (
+                      <p className="text-sm text-vibrant-orange font-medium mb-3">
+                        {selectedVersion.name}
+                      </p>
+                    )}
+                    
+                    {/* Basic Stats */}
+                    <div className="flex flex-wrap items-center gap-1.5 mb-2">
+                      <Badge variant="outline" className="text-xs border-dark-green text-dark-green">
+                        {selectedVersion?.yearpublished || selectedBGGGame?.yearpublished || 'N/A'}
+                      </Badge>
+                      <Badge variant="outline" className="text-xs border-dark-green text-dark-green">
+                        {selectedBGGGame?.minplayers || '?'}-{selectedBGGGame?.maxplayers || '?'} players
+                      </Badge>
+                      {selectedBGGGame?.minage && selectedBGGGame.minage !== '0' && (
+                        <Badge variant="outline" className="text-xs border-dark-green text-dark-green">
+                          {selectedBGGGame.minage}+
+                        </Badge>
+                      )}
+                      {selectedBGGGame?.playingtime && (
+                        <Badge variant="outline" className="text-xs border-dark-green text-dark-green">
+                          ~{selectedBGGGame.playingtime} min
+                        </Badge>
+                      )}
+                      {selectedBGGGame?.type === 'expansion' && (
+                        <Badge className="bg-dark-green text-white text-xs">
+                          Expansion
+                        </Badge>
+                      )}
+                    </div>
+                    
+                                         {/* Version-specific info */}
+                     {selectedVersion && (
+                       <div className="flex flex-wrap items-center gap-1.5">
+                         {selectedVersion.languages && selectedVersion.languages.length > 0 && (
+                           <Badge variant="outline" className="text-xs border-vibrant-orange text-vibrant-orange">
+                             {selectedVersion.languages.join(', ')}
+                           </Badge>
+                         )}
+                         {selectedVersion.publishers && selectedVersion.publishers.length > 0 && (
+                           <Badge variant="outline" className="text-xs border-dark-green text-dark-green">
+                             {selectedVersion.publishers.join(', ')}
+                           </Badge>
+                         )}
+                       </div>
+                     )}
                   </div>
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="title" className="text-sm font-medium">Game Title</Label>
-                <Select
-                  value={selectedTitleVariant}
-                  onValueChange={(value) => {
-                    setSelectedTitleVariant(value)
-                    if (value === "main-title") {
-                      setFormData(prev => ({ ...prev, title: selectedBGGGame.name }))
-                    } else {
-                      setFormData(prev => ({ ...prev, title: value }))
-                    }
-                  }}
-                >
-                  <SelectTrigger className="text-sm">
-                    <SelectValue placeholder="Select a title variant" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="main-title">Main Title ({selectedBGGGame.name})</SelectItem>
-                    {selectedBGGGame.alternateNames && selectedBGGGame.alternateNames.map((altName, index) => (
-                      <SelectItem key={`${selectedBGGGame.id}-alt-${index}`} value={altName}>
-                        {altName}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {/* Enhanced Version Selection */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-medium text-dark-green">Game Version</Label>
+                  {selectedBGGGame?.versions && selectedBGGGame?.versions.length > 0 ? (
+                    <Badge variant="outline" className="text-xs border-vibrant-orange text-vibrant-orange">
+                      {selectedBGGGame.versions.length} versions available
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-xs border-gray-300 text-gray-500">
+                      No versions found
+                    </Badge>
+                  )}
+                </div>
+                
 
-              {selectedBGGGame.versions && selectedBGGGame.versions.length > 0 && (
-                <div className="space-y-2">
-                  <Label htmlFor="version" className="text-sm font-medium">Game Version (Optional)</Label>
+
+                  {/* Version Selection */}
                   <Select
                     value={selectedVersion?.id || "main-game"}
                     onValueChange={(value) => {
@@ -750,15 +948,15 @@ export default function ListGamePage() {
                           versionProductCode: "",
                         }))
                       } else {
-                        const version = selectedBGGGame.versions?.find(v => v.id === value) || null
+                        const version = selectedBGGGame?.versions?.find(v => v.id === value) || null
                         setSelectedVersion(version)
                         if (version) {
                           setFormData(prev => ({
                             ...prev,
                             versionId: version.id,
                             versionName: version.name,
-                            versionPublisher: version.publisher,
-                            versionLanguage: version.language,
+                            versionPublisher: version.publishers?.join(', ') || '',
+                            versionLanguage: version.languages?.join(', ') || '',
                             versionYear: version.yearpublished,
                             versionProductCode: version.productcode,
                           }))
@@ -766,29 +964,96 @@ export default function ListGamePage() {
                       }
                     }}
                   >
-                    <SelectTrigger className="text-sm">
+                    <SelectTrigger className="text-sm border-warm-yellow/30 focus:border-vibrant-orange">
                       <SelectValue placeholder="Select a specific version/edition" />
                     </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="main-game">Main Game (No specific version)</SelectItem>
-                      {selectedBGGGame.versions.map((version) => (
+                    <SelectContent className="max-h-80">
+                      <SelectItem value="main-game">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-8 h-8 bg-light-beige rounded flex items-center justify-center">
+                            <Package className="w-4 h-4 text-dark-green" />
+                          </div>
+                          <div>
+                            <div className="font-medium">Main Game</div>
+                            <div className="text-xs text-gray-500">No specific version</div>
+                          </div>
+                        </div>
+                      </SelectItem>
+                      {selectedBGGGame?.versions?.map((version) => (
                         <SelectItem key={version.id} value={version.id}>
-                          <div className="text-sm">
-                            <div className="font-medium">{version.name}</div>
-                            <div className="text-xs text-gray-500">({version.language}, {version.yearpublished})</div>
+                          <div className="flex items-center space-x-3">
+                            <div className="flex-shrink-0">
+                              {version.thumbnail ? (
+                                <Image
+                                  src={version.thumbnail}
+                                  alt={version.name}
+                                  width={32}
+                                  height={32}
+                                  className="rounded object-cover"
+                                />
+                              ) : (
+                                <div className="w-8 h-8 bg-light-beige rounded flex items-center justify-center">
+                                  <Package className="w-4 h-4 text-dark-green" />
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="font-medium text-sm truncate">
+                                {version.name} ({version.yearpublished})
+                              </div>
+                            </div>
                           </div>
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                </div>
-              )}
 
+
+                </div>
+              
+
+              {/* Title Selection */}
+              <div className="space-y-2">
+                <Label htmlFor="title" className="text-sm font-medium text-dark-green">Game Title</Label>
+                <Select
+                  value={selectedTitleVariant}
+                  onValueChange={(value) => {
+                    setSelectedTitleVariant(value)
+                    if (value === "main-title") {
+                      setFormData(prev => ({ ...prev, title: selectedBGGGame?.name || 'Unknown Game' }))
+                    } else {
+                      setFormData(prev => ({ ...prev, title: value }))
+                    }
+                  }}
+                >
+                  <SelectTrigger className="text-sm border-warm-yellow/30 focus:border-vibrant-orange">
+                    <SelectValue placeholder="Select a title variant" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="main-title">
+                      <div className="flex items-center">
+                        <span className="font-medium">{selectedBGGGame?.name || 'Unknown Game'}</span>
+                        <Badge variant="outline" className="ml-2 text-xs">Main Title</Badge>
+                      </div>
+                    </SelectItem>
+                    {selectedBGGGame?.alternateNames && selectedBGGGame?.alternateNames.map((altName, index) => (
+                      <SelectItem key={`${selectedBGGGame?.id}-alt-${index}`} value={altName}>
+                        <div className="flex items-center">
+                          <span>{altName}</span>
+                          <Badge variant="outline" className="ml-2 text-xs">Alternative</Badge>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Expansions Section */}
               {formData.listingType === "base-game" && (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <Label className="text-sm font-medium">Add Expansions & Promos</Label>
-                    <Badge variant="outline" className="text-xs">Premium Feature</Badge>
+                    <Label className="text-sm font-medium text-dark-green">Add Expansions & Promos</Label>
+                    <Badge variant="outline" className="text-xs border-vibrant-orange text-vibrant-orange">Premium Feature</Badge>
                   </div>
                   <Button
                     type="button"
@@ -803,8 +1068,9 @@ export default function ListGamePage() {
                 </div>
               )}
 
+              {/* Navigation */}
               <div className="flex justify-between pt-4">
-                <Button variant="outline" onClick={handleBackStep} size="sm" className="text-sm">
+                <Button variant="outline" onClick={handleBackStep} size="sm" className="text-sm border-warm-yellow text-dark-green hover:bg-warm-yellow/10">
                   Back
                 </Button>
                 <Button onClick={handleNextStep} className="bg-vibrant-orange hover:bg-vibrant-orange/90 text-sm">

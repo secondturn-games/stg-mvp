@@ -86,14 +86,15 @@ interface BGGGameDetails {
   categories: string[]
   alternateNames: string[] // Add alternate names array
   versions?: BGGGameVersion[] // Add versions array
+  type?: string // Add game type
 }
 
 interface BGGGameVersion {
   id: string
   name: string
   yearpublished: string
-  publisher: string
-  language: string
+  publishers: string[]
+  languages: string[]
   productcode: string
   thumbnail: string
   image: string
@@ -1189,7 +1190,14 @@ class BGGService {
     // If no valid cache, try BGG API
     try {
       console.log(`Fetching fresh data from BGG API for game ${gameId}`)
-      const bggDetails = await this.getBGGDetails(gameId)
+      
+      // First, determine if this is a base game or expansion by trying both types
+      let bggDetails = await this.getBGGDetails(gameId, 'boardgame')
+      if (!bggDetails) {
+        // If not found as boardgame, try as expansion
+        bggDetails = await this.getBGGDetails(gameId, 'boardgameexpansion')
+      }
+      
       if (bggDetails) {
         // Cache the detailed data for future use (60 days expiry)
         await this.cacheGameData(bggDetails)
@@ -1273,6 +1281,7 @@ class BGGService {
         categories: data.categories || [],
         alternateNames: data.alternate_names || [], // Return alternate names from cache
         versions: data.versions || [], // Return versions from cache
+        type: data.game_type || 'base-game', // Return game type from cache
       }
     } catch (error) {
       console.error('Failed to get cached game data:', error)
@@ -1281,9 +1290,9 @@ class BGGService {
   }
 
   // Get details using BGG API
-  private async getBGGDetails(gameId: string): Promise<BGGGameDetails | null> {
+  private async getBGGDetails(gameId: string, gameType: 'boardgame' | 'boardgameexpansion' = 'boardgame'): Promise<BGGGameDetails | null> {
     await this.enforceRateLimit() // Enforce rate limit
-    const bggUrl = `https://boardgamegeek.com/xmlapi2/thing?id=${gameId}&type=boardgame&stats=1&versions=1`
+    const bggUrl = `https://boardgamegeek.com/xmlapi2/thing?id=${gameId}&type=${gameType}&stats=1&versions=1`
     
     const response = await fetch(bggUrl, {
       headers: {
@@ -1304,8 +1313,10 @@ class BGGService {
     // Parse the main game details
     const gameDetails = this.parseGameXML(xmlText)
     if (gameDetails) {
+      console.log(`🎮 Parsed game details for ${gameDetails.name} (ID: ${gameDetails.id})`)
       // Parse versions from the full XML response
       gameDetails.versions = this.parseVersionsXML(xmlText)
+      console.log(`📦 Game ${gameDetails.name} has ${gameDetails.versions?.length || 0} versions`)
     }
     return gameDetails
   }
@@ -1472,6 +1483,13 @@ class BGGService {
       
       description = limitLines(description, 5)
 
+      // Parse versions from the same XML response
+      const versions = this.parseVersionsXML(xmlText)
+      
+      // Determine game type from XML
+      const typeMatch = xmlText.match(/<item[^>]*type="([^"]*)"/)
+      const gameType = typeMatch?.[1] === 'boardgameexpansion' ? 'expansion' : 'base-game'
+      
       return {
         id: idMatch[1],
         name: decodeHtmlEntities(nameMatch[1]),
@@ -1489,6 +1507,8 @@ class BGGService {
         mechanics: mechanics.slice(0, 5),
         categories: categories.slice(0, 3),
         alternateNames: alternateNames, // Add alternate names to the result
+        versions: versions, // Add versions to the result
+        type: gameType, // Add game type
       }
     } catch (error) {
       console.error("Error parsing game XML:", error)
@@ -1501,65 +1521,97 @@ class BGGService {
     const versions: BGGGameVersion[] = []
     
     try {
-      // Find all version items - look for items with type="boardgameversion"
-      const versionRegex = /<item[^>]*type="boardgameversion"[^>]*id="(\d+)"[^>]*>([\s\S]*?)<\/item>/g
-      let match
+      console.log("🔍 Parsing versions from XML...")
+      console.log("XML length:", xmlText.length)
       
-      while ((match = versionRegex.exec(xmlText)) !== null) {
-        const versionId = match[1]
-        const versionContent = match[2]
+      // According to BGG API docs, versions are in the <versions> section
+      // Look for version items within the versions section
+      const versionsSectionRegex = /<versions>([\s\S]*?)<\/versions>/g
+      const versionsSectionMatch = versionsSectionRegex.exec(xmlText)
+      
+      if (versionsSectionMatch) {
+        const versionsContent = versionsSectionMatch[1]
+        console.log("📦 Found versions section, parsing version items...")
+        console.log("Versions content length:", versionsContent.length)
         
-        // Parse version details
-        const nameMatch = versionContent.match(/<name[^>]*type="primary"[^>]*value="([^"]*)"/)
-        const yearMatch = versionContent.match(/<yearpublished[^>]*value="([^"]*)"/)
-        const productCodeMatch = versionContent.match(/<productcode[^>]*value="([^"]*)"/)
-        const widthMatch = versionContent.match(/<width[^>]*value="([^"]*)"/)
-        const lengthMatch = versionContent.match(/<length[^>]*value="([^"]*)"/)
-        const depthMatch = versionContent.match(/<depth[^>]*value="([^"]*)"/)
-        const weightMatch = versionContent.match(/<weight[^>]*value="([^"]*)"/)
-        const thumbnailMatch = versionContent.match(/<thumbnail>(.*?)<\/thumbnail>/)
-        const imageMatch = versionContent.match(/<image>(.*?)<\/image>/)
+        // Parse each version item
+        const versionItemRegex = /<item[^>]*type="boardgameversion"[^>]*id="(\d+)"[^>]*>([\s\S]*?)<\/item>/g
+        let versionMatch
         
-        // Parse publisher - get the first publisher
-        const publisherMatches = versionContent.match(/<link[^>]*type="boardgamepublisher"[^>]*value="([^"]*)"/g)
-        let publisher = ""
-        if (publisherMatches && publisherMatches.length > 0) {
-          const firstPublisherMatch = publisherMatches[0].match(/value="([^"]*)"/)
-          publisher = firstPublisherMatch ? firstPublisherMatch[1] : ""
-        }
-        
-        // Parse language - get the first language
-        const languageMatches = versionContent.match(/<link[^>]*type="language"[^>]*value="([^"]*)"/g)
-        let language = ""
-        if (languageMatches && languageMatches.length > 0) {
-          const firstLanguageMatch = languageMatches[0].match(/value="([^"]*)"/)
-          language = firstLanguageMatch ? firstLanguageMatch[1] : ""
-        }
-        
-        if (nameMatch) {
-          const version = {
-            id: versionId,
-            name: decodeHtmlEntities(nameMatch[1]),
-            yearpublished: yearMatch?.[1] || "",
-            publisher: publisher,
-            language: language,
-            productcode: productCodeMatch?.[1] || "",
-            thumbnail: thumbnailMatch?.[1] || "",
-            image: imageMatch?.[1] || "",
-            width: widthMatch?.[1] || "",
-            length: lengthMatch?.[1] || "",
-            depth: depthMatch?.[1] || "",
-            weight: weightMatch?.[1] || "",
+        while ((versionMatch = versionItemRegex.exec(versionsContent)) !== null) {
+          const versionId = versionMatch[1]
+          const versionContent = versionMatch[2]
+          
+          console.log(`📦 Parsing version ${versionId}...`)
+          
+          // Parse version details
+          const nameMatch = versionContent.match(/<name[^>]*type="primary"[^>]*value="([^"]*)"/)
+          const yearMatch = versionContent.match(/<yearpublished[^>]*value="([^"]*)"/)
+          const productCodeMatch = versionContent.match(/<productcode[^>]*value="([^"]*)"/)
+          const widthMatch = versionContent.match(/<width[^>]*value="([^"]*)"/)
+          const lengthMatch = versionContent.match(/<length[^>]*value="([^"]*)"/)
+          const depthMatch = versionContent.match(/<depth[^>]*value="([^"]*)"/)
+          const weightMatch = versionContent.match(/<weight[^>]*value="([^"]*)"/)
+          const thumbnailMatch = versionContent.match(/<thumbnail>(.*?)<\/thumbnail>/)
+          const imageMatch = versionContent.match(/<image>(.*?)<\/image>/)
+          
+          // Parse all publishers
+          const publisherMatches = versionContent.match(/<link[^>]*type="boardgamepublisher"[^>]*value="([^"]*)"/g)
+          const publishers: string[] = []
+          if (publisherMatches) {
+            for (const match of publisherMatches) {
+              const valueMatch = match.match(/value="([^"]*)"/)
+              if (valueMatch) {
+                publishers.push(decodeHtmlEntities(valueMatch[1]))
+              }
+            }
           }
           
-          versions.push(version)
+          // Parse all languages
+          const languageMatches = versionContent.match(/<link[^>]*type="language"[^>]*value="([^"]*)"/g)
+          const languages: string[] = []
+          if (languageMatches) {
+            for (const match of languageMatches) {
+              const valueMatch = match.match(/value="([^"]*)"/)
+              if (valueMatch) {
+                languages.push(decodeHtmlEntities(valueMatch[1]))
+              }
+            }
+          }
+          
+          if (nameMatch) {
+            const version = {
+              id: versionId,
+              name: decodeHtmlEntities(nameMatch[1]),
+              yearpublished: yearMatch?.[1] || "",
+              publishers: publishers,
+              languages: languages,
+              productcode: productCodeMatch?.[1] || "",
+              thumbnail: thumbnailMatch?.[1] || "",
+              image: imageMatch?.[1] || "",
+              width: widthMatch?.[1] || "",
+              length: lengthMatch?.[1] || "",
+              depth: depthMatch?.[1] || "",
+              weight: weightMatch?.[1] || "",
+            }
+            
+            versions.push(version)
+            console.log(`✅ Parsed version: ${version.name} (${publishers.join(', ')}, ${version.yearpublished})`)
+          }
         }
+      } else {
+        console.log("⚠️ No versions section found in XML")
+                // Debug: Let's see what sections are available
+        const sections = xmlText.match(/<(\w+)>/g)
+        console.log("Available XML sections:", sections?.slice(0, 10))
       }
+      
+      console.log(`✅ Parsed ${versions.length} versions total`)
+      return versions
     } catch (error) {
       console.error("Error parsing versions XML:", error)
+      return []
     }
-    
-    return versions
   }
 
   // Cache metadata batch in database (for search results)
