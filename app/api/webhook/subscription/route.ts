@@ -21,7 +21,7 @@ export async function POST(request: Request) {
         const resend = new Resend(process.env.RESEND_API_KEY)
         
         const { data, error } = await resend.emails.send({
-          from: 'notifications@secondturn.games',
+          from: 'info@secondturn.games',
           to: process.env.NOTIFICATION_EMAIL || 'aigars.grenins@gmail.com',
           subject: '🎉 New Newsletter Subscription - Second Turn',
           html: `

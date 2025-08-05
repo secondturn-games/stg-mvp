@@ -16,7 +16,7 @@ serve(async (req) => {
     })
 
     await client.send({
-      from: "notifications@secondturn.games",
+      from: "info@secondturn.games",
       to: Deno.env.get("NOTIFICATION_EMAIL") || "",
       subject: "🎉 New Newsletter Subscription - Second Turn",
       content: `

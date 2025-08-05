@@ -252,7 +252,7 @@ This project is licensed under the MIT License.
 
 ## 🆘 Support
 
-For support, email support@secondturn.games or create an issue in the repository.
+For support, email info@secondturn.games or create an issue in the repository.
 
 ---
 

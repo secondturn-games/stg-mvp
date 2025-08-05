@@ -25,7 +25,7 @@ SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 ### **Resend.com Setup**
 
 - **Domain**: `secondturn.games` (verified)
-- **From Email**: `notifications@secondturn.games`
+- **From Email**: `info@secondturn.games`
 - **API Key**: Added to Vercel environment variables
 
 ## 🔧 Common Commands
@@ -67,7 +67,7 @@ vercel logs secondturn.games
 ### **Email Template**
 
 - **Subject**: "🎉 New Newsletter Subscription - Second Turn"
-- **From**: `notifications@secondturn.games`
+- **From**: `info@secondturn.games`
 - **To**: `NOTIFICATION_EMAIL` environment variable
 
 ## 🛠️ Troubleshooting
@@ -139,7 +139,7 @@ vercel logs secondturn.games
 
 ### **Contact**
 
-- **Email**: support@secondturn.games
+- **Email**: info@secondturn.games
 - **Repository**: Create issue for technical problems
 
 ---

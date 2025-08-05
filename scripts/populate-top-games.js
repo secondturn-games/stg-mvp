@@ -136,7 +136,7 @@ async function fetchTopRankedGames() {
       `https://boardgamegeek.com/xmlapi2/search?type=boardgame&sort=rank&sorttype=rank&limit=${TOP_GAMES_COUNT}`,
       {
         headers: {
-          'User-Agent': 'SecondTurnGames/1.0 (contact@secondturn.games)',
+          'User-Agent': 'SecondTurnGames/1.0 (info@secondturn.games)',
           'Accept': 'application/xml; charset=utf-8',
         },
       }
@@ -175,7 +175,7 @@ async function fetchGameMetadataBatch(gameIds) {
   try {
     const response = await fetch(bggUrl, {
       headers: {
-        'User-Agent': 'SecondTurnGames/1.0 (contact@secondturn.games)',
+        'User-Agent': 'SecondTurnGames/1.0 (info@secondturn.games)',
         'Accept': 'application/xml; charset=utf-8',
       },
     })

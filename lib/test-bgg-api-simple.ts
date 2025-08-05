@@ -8,7 +8,7 @@ async function testBGGAPISimple() {
     
     const response = await fetch(searchUrl, {
       headers: {
-        'User-Agent': 'SecondTurnGames/1.0 (contact@secondturn.games)',
+        'User-Agent': 'SecondTurnGames/1.0 (info@secondturn.games)',
         'Accept': 'application/xml; charset=utf-8',
       },
     })
@@ -59,7 +59,7 @@ async function testBGGAPISimple() {
         
         const metadataResponse = await fetch(metadataUrl, {
           headers: {
-            'User-Agent': 'SecondTurnGames/1.0 (contact@secondturn.games)',
+            'User-Agent': 'SecondTurnGames/1.0 (info@secondturn.games)',
             'Accept': 'application/xml; charset=utf-8',
           },
         })

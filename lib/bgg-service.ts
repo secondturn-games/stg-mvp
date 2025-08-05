@@ -694,7 +694,7 @@ class BGGService {
         try {
           const response = await fetch(url, {
             headers: {
-              'User-Agent': 'SecondTurnGames/1.0 (contact@secondturn.games)',
+              'User-Agent': 'SecondTurnGames/1.0 (info@secondturn.games)',
               'Accept': 'application/xml; charset=utf-8',
             },
             signal: controller.signal,
@@ -832,7 +832,7 @@ class BGGService {
       try {
         const response = await fetch(bggUrl, {
           headers: {
-            'User-Agent': 'SecondTurnGames/1.0 (contact@secondturn.games)',
+            'User-Agent': 'SecondTurnGames/1.0 (info@secondturn.games)',
             'Accept': 'application/xml; charset=utf-8',
           },
         })
@@ -1296,7 +1296,7 @@ class BGGService {
     
     const response = await fetch(bggUrl, {
       headers: {
-        'User-Agent': 'SecondTurnGames/1.0 (contact@secondturn.games)',
+        'User-Agent': 'SecondTurnGames/1.0 (info@secondturn.games)',
         'Accept': 'application/xml; charset=utf-8',
       },
     })
