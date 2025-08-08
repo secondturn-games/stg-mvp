@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { BGGService } from '@/lib/bgg-service'
+import { BGGService } from '@/lib/bgg'
 
 export async function GET() {
   try {

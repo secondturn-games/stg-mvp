@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useMemo } from "react"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -8,8 +8,11 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Loader2, Plus, Euro, Gavel, ExternalLink, Star, Package, Calendar, Users, Cake, Clock, Type } from "lucide-react"
+import { Loader2, Plus, Euro, Gavel, ExternalLink, Package, Calendar, Users, Cake, Clock, Type } from "lucide-react"
 import { Navigation } from "@/components/navigation"
+
+// Utility class for screen reader only content
+const srOnly = "sr-only"
 
 interface BGGGameDetails {
   id: string
@@ -84,7 +87,6 @@ interface FormData {
   listingType: "base-game" | "expansion" | "bundle"
   saleType: "fixed-price" | "auction"
   baseGame: string
-  expansions: string[]
   bundleItems: string[]
   versionId: string
   versionName: string
@@ -101,9 +103,45 @@ interface FormData {
   hasReserve: boolean
 }
 
+// Type guards for runtime safety
+const isValidBGGSearchResult = (data: unknown): data is BGGSearchResult => {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    'id' in data &&
+    'name' in data &&
+    typeof (data as any).id === 'string' &&
+    typeof (data as any).name === 'string'
+  )
+}
+
+const isValidBGGGameDetails = (data: unknown): data is BGGGameDetails => {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    'id' in data &&
+    'name' in data &&
+    'yearpublished' in data &&
+    typeof (data as any).id === 'string' &&
+    typeof (data as any).name === 'string' &&
+    typeof (data as any).yearpublished === 'string'
+  )
+}
+
+const isValidBGGGameVersion = (data: unknown): data is BGGGameVersion => {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    'id' in data &&
+    'name' in data &&
+    typeof (data as any).id === 'string' &&
+    typeof (data as any).name === 'string'
+  )
+}
+
 export default function ListGamePage() {
   const [currentStep, setCurrentStep] = useState<'sale-type' | 'search' | 'game-details' | 'listing-details'>('sale-type')
-  const [saleType, setSaleType] = useState<'fixed-price' | 'auction'>('fixed-price')
+
   const [searchTerm, setSearchTerm] = useState("")
   const [searchResults, setSearchResults] = useState<BGGSearchResult[]>([])
   const [isSearching, setIsSearching] = useState(false)
@@ -112,13 +150,24 @@ export default function ListGamePage() {
   const [selectedBGGGame, setSelectedBGGGame] = useState<BGGGameDetails | null>(null)
   const [selectedVersion, setSelectedVersion] = useState<BGGGameVersion | null>(null)
   const [selectedTitleVariant, setSelectedTitleVariant] = useState<string>("main-title")
-  const [selectedExpansions, setSelectedExpansions] = useState<BGGSearchResult[]>([])
-  const [showExpansionSearch, setShowExpansionSearch] = useState(false)
-  
-  // Add search filter states
-  const [searchFilters, setSearchFilters] = useState({
-    gameType: 'base-game' as 'base-game' | 'expansion'
-  })
+  const [currentGameType, setCurrentGameType] = useState<'base-game' | 'expansion'>('base-game')
+
+  // Centralized error handling
+  const handleError = (error: unknown, context: string, fallbackMessage?: string) => {
+    // Don't handle abort errors (user cancelled)
+    if (error instanceof Error && error.name === 'AbortError') {
+      return
+    }
+    
+    const message = error instanceof Error ? error.message : (fallbackMessage || `${context} failed`)
+    setSearchError(message)
+    
+    // Log for debugging in development
+    if (process.env.NODE_ENV === 'development') {
+      console.error(`${context} error:`, error)
+    }
+  }
+
 
   // Abort controller for cancelling previous requests
   const abortControllerRef = useRef<AbortController | null>(null)
@@ -140,7 +189,6 @@ export default function ListGamePage() {
     listingType: "base-game",
     saleType: "fixed-price",
     baseGame: "",
-    expansions: [],
     bundleItems: [],
     versionId: "",
     versionName: "",
@@ -174,9 +222,9 @@ export default function ListGamePage() {
     abortControllerRef.current = new AbortController()
 
     // Use custom game type if provided, otherwise use current state
-    const gameTypeToUse = customGameType || searchFilters.gameType
+    const gameTypeToUse = customGameType || currentGameType
 
-    console.log(`🔍 Frontend: Starting search for "${trimmedQuery}" with game type: ${gameTypeToUse}`)
+
     setIsSearching(true)
     setSearchError('')
     setHasSearched(true)
@@ -205,16 +253,8 @@ export default function ListGamePage() {
         setSearchError(data.error || 'Search failed')
       }
     } catch (error) {
-      // Don't show error if request was cancelled
-      if (error instanceof Error && error.name === 'AbortError') {
-        console.log('🔍 Frontend: Search request cancelled')
-        return
-      }
-      
-      console.error('🔍 Frontend: Search error:', error)
-      setSearchError(error instanceof Error ? error.message : 'Search failed. Please try again.')
+      handleError(error, 'Search', 'Search failed. Please try again.')
     } finally {
-      console.log('🔍 Search completed')
       setIsSearching(false)
     }
   }
@@ -233,16 +273,14 @@ export default function ListGamePage() {
       setSelectedBGGGame(null)
       setSelectedVersion(null)
       setSelectedTitleVariant("main-title")
-      setSelectedExpansions([])
       return
     }
 
     // If it's already a BGGGameDetails object (has versions), use it directly
-    if ('versions' in game) {
-      setSelectedBGGGame(game as BGGGameDetails)
+    if ('versions' in game && isValidBGGGameDetails(game)) {
+      setSelectedBGGGame(game)
       setSelectedVersion(null)
       setSelectedTitleVariant("main-title")
-      setSelectedExpansions([])
       
       setFormData(prev => ({
         ...prev,
@@ -260,7 +298,6 @@ export default function ListGamePage() {
 
     // If it's a BGGSearchResult, fetch the full game details
     try {
-      console.log(`🔍 Fetching full details for game ${game.id}: ${game.name}`)
       const response = await fetch(`/api/bgg/game/${game.id}`)
       
       if (!response.ok) {
@@ -268,13 +305,16 @@ export default function ListGamePage() {
       }
       
       const responseData = await response.json()
+      
+      if (!responseData.game || !isValidBGGGameDetails(responseData.game)) {
+        throw new Error('Invalid game data received from server')
+      }
+      
       const gameDetails: BGGGameDetails = responseData.game
-      console.log(`✅ Fetched game details for ${gameDetails.name}, versions: ${gameDetails.versions?.length || 0}`)
       
       setSelectedBGGGame(gameDetails)
       setSelectedVersion(null)
       setSelectedTitleVariant("main-title")
-      setSelectedExpansions([])
       
       setFormData(prev => ({
         ...prev,
@@ -288,7 +328,8 @@ export default function ListGamePage() {
       }))
       setCurrentStep('game-details')
     } catch (error) {
-      console.error('Error fetching game details:', error)
+      handleError(error, 'Game details fetch', 'Failed to fetch game details')
+      
       // Fallback to using the search result data
       const fallbackGame: BGGGameDetails = {
          id: game.id,
@@ -313,7 +354,6 @@ export default function ListGamePage() {
        setSelectedBGGGame(fallbackGame)
        setSelectedVersion(null)
        setSelectedTitleVariant("main-title")
-       setSelectedExpansions([])
        
        setFormData(prev => ({
          ...prev,
@@ -348,6 +388,15 @@ export default function ListGamePage() {
       setCurrentStep('game-details')
     }
   }
+
+  // Memoized computed values for performance
+  const hasValidSearchTerm = useMemo(() => {
+    return searchTerm.trim().length >= 2
+  }, [searchTerm])
+
+  const canPerformSearch = useMemo(() => {
+    return hasValidSearchTerm && !isSearching
+  }, [hasValidSearchTerm, isSearching])
 
   return (
     <div className="min-h-screen bg-light-beige">
@@ -401,12 +450,19 @@ export default function ListGamePage() {
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 gap-4">
                   <div
-                    className={`p-4 border-2 rounded-lg cursor-pointer transition-colors ${
-                      saleType === 'fixed-price' 
-                        ? 'border-vibrant-orange bg-warm-yellow/10' 
-                        : 'border-gray-200 hover:border-vibrant-orange/50'
-                    }`}
-                    onClick={() => setSaleType('fixed-price')}
+                    className="p-4 border-2 rounded-lg cursor-pointer transition-colors border-vibrant-orange bg-warm-yellow/10 focus:outline-none focus:ring-2 focus:ring-vibrant-orange focus:ring-offset-2"
+                    onClick={() => {
+                      setFormData(prev => ({ ...prev, saleType: 'fixed-price' }))
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
+                        setFormData(prev => ({ ...prev, saleType: 'fixed-price' }))
+                      }
+                    }}
+                    tabIndex={0}
+                    role="button"
+                    aria-label="Select Fixed Price listing type"
                   >
                     <div className="flex items-center space-x-3">
                       <div className="p-2 bg-vibrant-orange/10 rounded-lg">
@@ -420,20 +476,18 @@ export default function ListGamePage() {
                   </div>
                   
                   <div
-                    className={`p-4 border-2 rounded-lg cursor-pointer transition-colors ${
-                      saleType === 'auction' 
-                        ? 'border-vibrant-orange bg-warm-yellow/10' 
-                        : 'border-gray-200 hover:border-vibrant-orange/50'
-                    }`}
-                    onClick={() => setSaleType('auction')}
+                    className="p-4 border-2 rounded-lg transition-colors border-gray-200 bg-gray-50 cursor-not-allowed opacity-60"
                   >
                     <div className="flex items-center space-x-3">
-                      <div className="p-2 bg-vibrant-orange/10 rounded-lg">
-                        <Gavel className="w-6 h-6 text-vibrant-orange" />
+                      <div className="p-2 bg-gray-200 rounded-lg">
+                        <Gavel className="w-6 h-6 text-gray-400" />
                       </div>
                       <div>
-                        <h3 className="font-semibold text-dark-green">Auction</h3>
-                        <p className="text-sm text-gray-600">Let the community decide</p>
+                        <div className="flex items-center space-x-2">
+                          <h3 className="font-semibold text-gray-500">Auction</h3>
+                          <Badge variant="outline" className="text-xs border-vibrant-orange text-vibrant-orange">Coming Soon</Badge>
+                        </div>
+                        <p className="text-sm text-gray-500">Let the community decide</p>
                       </div>
                     </div>
                   </div>
@@ -479,17 +533,19 @@ export default function ListGamePage() {
                   <div className="flex items-center bg-gray-100 rounded-lg p-1">
                     <button
                       onClick={() => {
-                        setSearchFilters({ gameType: 'base-game' })
+                        setCurrentGameType('base-game')
                         // Clear results when switching filters
                         setSearchResults([])
                         setSearchError('')
                         // Auto-search if there's a search term
-                        if (searchTerm.trim().length >= 2) {
+                        if (hasValidSearchTerm) {
                           performSearch('base-game')
                         }
                       }}
+                      aria-label="Search for base games"
+                      aria-pressed={currentGameType === 'base-game'}
                       className={`flex-1 py-2 px-3 rounded-md text-xs font-medium transition-colors ${
-                        searchFilters.gameType === 'base-game'
+                        currentGameType === 'base-game'
                           ? 'bg-vibrant-orange text-white shadow-sm'
                           : 'text-gray-600 hover:text-gray-800'
                       }`}
@@ -498,17 +554,19 @@ export default function ListGamePage() {
                     </button>
                     <button
                       onClick={() => {
-                        setSearchFilters({ gameType: 'expansion' })
+                        setCurrentGameType('expansion')
                         // Clear results when switching filters
                         setSearchResults([])
                         setSearchError('')
                         // Auto-search if there's a search term
-                        if (searchTerm.trim().length >= 2) {
+                        if (hasValidSearchTerm) {
                           performSearch('expansion')
                         }
                       }}
+                      aria-label="Search for expansions"
+                      aria-pressed={currentGameType === 'expansion'}
                       className={`flex-1 py-2 px-3 rounded-md text-xs font-medium transition-colors ${
-                        searchFilters.gameType === 'expansion'
+                        currentGameType === 'expansion'
                           ? 'bg-vibrant-orange text-white shadow-sm'
                           : 'text-gray-600 hover:text-gray-800'
                       }`}
@@ -521,6 +579,8 @@ export default function ListGamePage() {
                     <div className="relative flex-1">
                       <Input
                         id="search"
+                        aria-label="Search for games"
+                        aria-describedby="search-help"
                         placeholder="Type in the name..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
@@ -531,6 +591,9 @@ export default function ListGamePage() {
                         }}
                         className="border-warm-yellow focus:border-vibrant-orange placeholder:text-gray-400 text-sm lg:text-base"
                       />
+                      <div id="search-help" className="sr-only">
+                        Enter at least 2 characters to search for board games or expansions
+                      </div>
                       
                       {/* Clear button - show when there's text in the input */}
                       {searchTerm.trim().length > 0 && (
@@ -558,7 +621,8 @@ export default function ListGamePage() {
                     
                     <Button
                       onClick={() => performSearch()}
-                      disabled={searchTerm.trim().length < 2 || isSearching}
+                      disabled={!canPerformSearch}
+                      aria-label={isSearching ? "Searching for games" : "Search for games"}
                       className="bg-vibrant-orange hover:bg-vibrant-orange/90 text-white px-4"
                     >
                       {isSearching ? (
@@ -573,7 +637,7 @@ export default function ListGamePage() {
                   </div>
                 </div>
 
-                {searchTerm.trim().length > 0 && searchTerm.trim().length < 2 && !isSearching && (
+                {searchTerm.trim().length > 0 && !hasValidSearchTerm && !isSearching && (
                   <div className="p-3 bg-light-green/50 border border-light-green rounded-lg">
                     <p className="text-sm lg:text-base text-dark-green">
                       💡 Please enter at least 2 characters to search for games
@@ -661,7 +725,13 @@ export default function ListGamePage() {
                 )}
 
                 <div className="flex justify-between pt-4">
-                  <Button variant="outline" onClick={handleBackStep} size="sm" className="text-sm">
+                  <Button 
+                    variant="outline" 
+                    onClick={handleBackStep} 
+                    size="sm" 
+                    className="text-sm"
+                    aria-label="Go back to previous step"
+                  >
                     Back
                   </Button>
                 </div>
@@ -887,15 +957,15 @@ export default function ListGamePage() {
                       <SelectTrigger className="text-sm border-warm-yellow/30 focus:border-vibrant-orange">
                         <SelectValue placeholder="Select a specific version/edition" />
                       </SelectTrigger>
-                      <SelectContent className="max-h-80">
-                        <SelectItem value="main-game">
-                          <div className="flex items-center space-x-3">
-                            <div className="w-8 h-8 bg-light-beige rounded flex items-center justify-center">
+                      <SelectContent className="max-h-80 md:max-h-80 max-h-[28rem] overflow-y-auto">
+                        <SelectItem value="main-game" className="min-h-[3rem]">
+                          <div className="flex items-center space-x-3 py-1">
+                            <div className="w-8 h-8 bg-light-beige rounded flex items-center justify-center flex-shrink-0">
                               <Package className="w-4 h-4 text-dark-green" />
                             </div>
-                            <div className="text-left">
-                              <div className="font-medium">Choose version</div>
-                              <div className="text-xs text-gray-500">
+                            <div className="text-left min-w-0 flex-1">
+                              <div className="font-medium text-sm leading-tight">Which version do you have?</div>
+                              <div className="text-xs text-gray-500 leading-tight">
                                 {selectedBGGGame?.versions && selectedBGGGame.versions.length > 0 
                                   ? `${selectedBGGGame.versions.length} versions available`
                                   : 'No versions found'
@@ -904,9 +974,11 @@ export default function ListGamePage() {
                             </div>
                           </div>
                         </SelectItem>
-                        {selectedBGGGame?.versions?.map((version) => (
-                          <SelectItem key={version.id} value={version.id}>
-                            <div className="flex items-center space-x-3">
+                        {selectedBGGGame?.versions
+                          ?.filter(version => version.name && version.name.trim() !== '')
+                          ?.map((version, index) => (
+                          <SelectItem key={`${version.id}-${index}`} value={version.id} className="min-h-[3rem]">
+                            <div className="flex items-center space-x-3 py-1">
                               <div className="flex-shrink-0 w-8 h-8 overflow-hidden rounded">
                                 {version.thumbnail ? (
                                   <Image
@@ -926,8 +998,8 @@ export default function ListGamePage() {
                                 </div>
                               </div>
                               <div className="flex-1 min-w-0 text-left">
-                                <div className="font-medium text-sm truncate">
-                                  {version.name} ({version.yearpublished})
+                                <div className="font-medium text-sm truncate leading-tight">
+                                  {version.name} {version.yearpublished ? `(${version.yearpublished})` : ''}
                                 </div>
                               </div>
                             </div>
@@ -956,15 +1028,15 @@ export default function ListGamePage() {
                     <SelectTrigger className="text-sm border-warm-yellow/30 focus:border-vibrant-orange">
                       <SelectValue placeholder="Choose title" />
                     </SelectTrigger>
-                    <SelectContent className="max-h-80">
-                      <SelectItem value="main-title">
-                        <div className="flex items-center space-x-3">
-                          <div className="w-8 h-8 bg-light-beige rounded flex items-center justify-center">
+                    <SelectContent className="max-h-80 md:max-h-80 max-h-[28rem] overflow-y-auto">
+                      <SelectItem value="main-title" className="min-h-[3rem]">
+                        <div className="flex items-center space-x-3 py-1">
+                          <div className="w-8 h-8 bg-light-beige rounded flex items-center justify-center flex-shrink-0">
                             <Type className="w-4 h-4 text-dark-green" />
                           </div>
-                          <div className="text-left">
-                            <div className="font-medium">{selectedBGGGame?.name || 'Unknown Game'}</div>
-                            <div className="text-xs text-gray-500">
+                          <div className="text-left min-w-0 flex-1">
+                            <div className="font-medium text-sm truncate leading-tight">{selectedBGGGame?.name || 'Unknown Game'}</div>
+                            <div className="text-xs text-gray-500 leading-tight">
                               {selectedBGGGame?.alternateNames && selectedBGGGame.alternateNames.length > 0 
                                 ? `${selectedBGGGame.alternateNames.length} alternative titles available`
                                 : 'Primary title'
@@ -974,15 +1046,15 @@ export default function ListGamePage() {
                         </div>
                       </SelectItem>
                       {selectedBGGGame?.alternateNames && selectedBGGGame?.alternateNames.map((altName, index) => (
-                        <SelectItem key={`${selectedBGGGame?.id}-alt-${index}`} value={altName}>
-                          <div className="flex items-center space-x-3">
+                        <SelectItem key={`${selectedBGGGame?.id}-alt-${index}`} value={altName} className="min-h-[3rem]">
+                          <div className="flex items-center space-x-3 py-1">
                             <div className="flex-shrink-0">
                               <div className="w-8 h-8 bg-light-beige rounded flex items-center justify-center">
                                 <Type className="w-4 h-4 text-dark-green" />
                               </div>
                             </div>
                             <div className="flex-1 min-w-0 text-left">
-                              <div className="font-medium text-sm truncate">
+                              <div className="font-medium text-sm truncate leading-tight">
                                 {altName}
                               </div>
                             </div>
@@ -993,32 +1065,24 @@ export default function ListGamePage() {
                   </Select>
                 </div>
 
-                {/* Expansions Section */}
-                {formData.listingType === "base-game" && (
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-sm font-medium text-dark-green">Add Expansions & Promos</Label>
-                      <Badge variant="outline" className="text-xs border-vibrant-orange text-vibrant-orange">Premium Feature</Badge>
-                    </div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setShowExpansionSearch(true)}
-                      className="w-full border-warm-yellow text-dark-green hover:bg-warm-yellow/10 text-sm"
-                      disabled
-                    >
-                      <Plus className="w-4 h-4 mr-2" />
-                      Add Expansion or Promo (Premium)
-                    </Button>
-                  </div>
-                )}
+
 
                 {/* Navigation */}
                 <div className="flex justify-between pt-4">
-                  <Button variant="outline" onClick={handleBackStep} size="sm" className="text-sm border-warm-yellow text-dark-green hover:bg-warm-yellow/10">
+                  <Button 
+                    variant="outline" 
+                    onClick={handleBackStep} 
+                    size="sm" 
+                    className="text-sm border-warm-yellow text-dark-green hover:bg-warm-yellow/10"
+                    aria-label="Go back to search step"
+                  >
                     Back
                   </Button>
-                  <Button onClick={handleNextStep} className="bg-vibrant-orange hover:bg-vibrant-orange/90 text-sm">
+                  <Button 
+                    onClick={handleNextStep} 
+                    className="bg-vibrant-orange hover:bg-vibrant-orange/90 text-sm"
+                    aria-label="Continue to listing details"
+                  >
                     Continue
                   </Button>
                 </div>
@@ -1090,3 +1154,4 @@ export default function ListGamePage() {
     </div>
   )
 }
+

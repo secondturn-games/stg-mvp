@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { bggService } from "@/lib/bgg-service"
+import { bggService } from "@/lib/bgg"
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
@@ -34,7 +34,8 @@ export async function GET(request: NextRequest) {
   try {
     // Clear cache if debug mode is enabled
     if (debug) {
-      bggService.clearSearchCache()
+      // Clear only this query from memory cache to avoid side effects
+      bggService.clearSearchCacheForQuery(query.trim(), { gameType: gameType as 'base-game' | 'expansion' })
     }
 
     console.log(`🔍 Starting search for: "${query}" with game type: ${gameType}`)

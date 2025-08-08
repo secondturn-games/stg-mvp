@@ -28,7 +28,7 @@ Return Filtered Results
 
 ## Key Components
 
-### 1. BGGService Class (`lib/bgg-service.ts`)
+### 1. BGGService Class (`lib/bgg/`)
 
 **Main Entry Point:**
 

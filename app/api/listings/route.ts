@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createServerSupabaseClient } from "@/lib/db"
-import { bggService } from "@/lib/bgg-service"
+import { bggService } from "@/lib/bgg"
 import { imageUploadService } from "@/lib/image-upload"
 
 // GET - Fetch listings with filters

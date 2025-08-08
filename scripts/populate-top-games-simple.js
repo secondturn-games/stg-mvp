@@ -6,7 +6,7 @@
  * Usage: node scripts/populate-top-games-simple.js
  */
 
-import { BGGService } from '../lib/bgg-service.js'
+import { BGGService } from '../lib/bgg.js'
 import { createClient } from '@supabase/supabase-js'
 
 // Configuration

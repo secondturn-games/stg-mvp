@@ -1,5 +1,4 @@
-import { BGGService } from './bgg-service'
-import type { BGGSearchResult } from './bgg-service'
+import { BGGService, type BGGSearchResult } from './bgg'
 
 async function testBGGAPI() {
   try {

@@ -45,7 +45,7 @@ User types → 600ms delay → BGG API → Metadata → Results
 
 ### Backend Setup
 
-- [ ] Configure rate limiting in `bgg-service.ts`
+- [ ] Configure rate limiting in `lib/bgg/api/endpoints.ts`
 - [ ] Set up Supabase caching
 - [ ] Implement CSV fallback
 - [ ] Add error handling
@@ -228,7 +228,7 @@ const abortControllerRef = useRef(null)
 ## 📚 Related Files
 
 - `app/list-game/page.tsx` - Main search implementation
-- `lib/bgg-service.ts` - BGG API integration
+- `lib/bgg/` - BGG API integration (modular structure)
 - `app/api/bgg/search/route.ts` - Search API endpoint
 - `docs/search-functionality.md` - Full documentation
 
