@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -12,6 +13,7 @@ import type { Listing } from "@/types"
 import { Navigation } from "@/components/navigation"
 
 export default function GamesPage() {
+  const router = useRouter()
   const [listings, setListings] = useState<Listing[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -159,7 +161,11 @@ export default function GamesPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredListings.map((listing) => (
-                <Card key={listing.id} className="hover:shadow-lg transition-shadow cursor-pointer">
+                <Card 
+                  key={listing.id} 
+                  className="hover:shadow-lg transition-shadow cursor-pointer"
+                  onClick={() => router.push(`/listing/${listing.id}`)}
+                >
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between">
                       <div className="flex-1 min-w-0">
@@ -167,7 +173,7 @@ export default function GamesPage() {
                           {listing.title}
                         </CardTitle>
                         <CardDescription className="text-sm text-gray-600 mt-1">
-                          {listing.user?.full_name || listing.user?.username} • {listing.city}, {listing.country}
+                          {listing.users?.full_name || listing.users?.username} • {listing.city}, {listing.country}
                         </CardDescription>
                       </div>
                       <div className="text-right">

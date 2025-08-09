@@ -20,15 +20,6 @@ This document outlines how to implement a board game selection and metadata retr
 GET https://boardgamegeek.com/xmlapi2/search?query=QUERY&type=boardgame,boardgameexpansion
 ```
 
-- Use `type=boardgame,boardgameexpansion` to get both base games and expansions.
-- Optional: `exact=1` for precise matches.
-
-**Returned Data:**
-
-- Game ID
-- Name (primary)
-- Year published
-
 ## 2. Retrieving Game Details
 
 **Endpoint:**
@@ -123,17 +114,12 @@ Display the following on the final seller-facing card:
 
 ### Alternate Search Strategy
 
-- Use BGG's game CSV dump for local autocomplete
 - Only call API when a specific game is selected
 
 ### No CORS Support
 
 - Do not call BGG API from client-side code
 - Use backend proxy to handle API requests
-
-### Optional APIs
-
-- BoardGameAtlas API (faster JSON, not as complete)
 
 ## Summary
 
@@ -155,4 +141,3 @@ With caching and rate limit handling, this flow can power a smooth and complete 
 - BGG Developer Guild
 - Reddit r/boardgames discussions on API use
 - Community documentation and example implementations
-

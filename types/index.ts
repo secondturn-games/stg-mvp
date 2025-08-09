@@ -48,6 +48,7 @@ export interface Listing {
   currency: string
   city: string
   country: string
+  local_area?: string
   pickup_radius: number
   trading_options: string[]
   images: string[]
@@ -57,6 +58,17 @@ export interface Listing {
   favorite_count: number
   bgg_id?: string
   bgg_data?: any
+  
+  // Enhanced listing fields
+  sale_type: 'fixed-price' | 'auction' | 'bundle' | 'trade' | 'giveaway'
+  shipping_methods: string[]
+  shipping_costs: { [method: string]: number }
+  extras_categories: string[]
+  extras_notes?: string
+  included_items: string[]
+  version_name?: string
+  version_id?: string
+  
   created_at: string
   updated_at: string
   
@@ -97,6 +109,7 @@ export interface Review {
 
 // Form types
 export interface CreateListingForm {
+  // Basic listing info
   title: string
   description: string
   condition: string
@@ -104,9 +117,24 @@ export interface CreateListingForm {
   price: number
   city: string
   country: string
+  local_area?: string
   pickup_radius: number
   trading_options: string[]
   images: File[]
+  
+  // Enhanced listing fields
+  sale_type: 'fixed-price' | 'auction' | 'bundle' | 'trade' | 'giveaway'
+  shipping_methods: string[]
+  shipping_costs: { [method: string]: string } // String in form, converted to number
+  extras_categories: string[]
+  extras_notes?: string
+  included_items: string[]
+  version_name?: string
+  version_id?: string
+  
+  // BGG data
+  bgg_id?: string
+  bgg_data?: any
   game_id?: string
 }
 

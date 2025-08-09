@@ -154,6 +154,7 @@ CREATE TABLE IF NOT EXISTS listings (
   currency TEXT NOT NULL DEFAULT 'EUR',
   city TEXT NOT NULL,
   country TEXT NOT NULL,
+  local_area TEXT, -- Specific local area within city
   pickup_radius INTEGER NOT NULL DEFAULT 50, -- km
   trading_options TEXT[], -- JSON array
   images TEXT[], -- JSON array of image URLs
@@ -163,6 +164,17 @@ CREATE TABLE IF NOT EXISTS listings (
   favorite_count INTEGER NOT NULL DEFAULT 0,
   bgg_id TEXT, -- BGG game ID for metadata
   bgg_data JSONB, -- Store BGG metadata as JSON
+  
+  -- New columns for enhanced listing functionality
+  sale_type TEXT DEFAULT 'fixed-price' CHECK (sale_type IN ('fixed-price', 'auction', 'bundle', 'trade', 'giveaway')),
+  shipping_methods JSONB DEFAULT '[]'::jsonb, -- Array of shipping method names
+  shipping_costs JSONB DEFAULT '{}'::jsonb, -- Object mapping methods to costs
+  extras_categories TEXT[] DEFAULT ARRAY[]::TEXT[], -- Array of extra/add-on categories
+  extras_notes TEXT, -- Free text notes about extras/add-ons
+  included_items TEXT[] DEFAULT ARRAY[]::TEXT[], -- Array of items included
+  version_name TEXT, -- Specific version/edition name
+  version_id TEXT, -- BGG version ID if applicable
+  
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   
@@ -231,6 +243,10 @@ CREATE INDEX IF NOT EXISTS idx_listings_price ON listings(price);
 CREATE INDEX IF NOT EXISTS idx_listings_condition ON listings(condition);
 CREATE INDEX IF NOT EXISTS idx_listings_bgg_id ON listings(bgg_id);
 CREATE INDEX IF NOT EXISTS idx_listings_user_id ON listings(user_id);
+CREATE INDEX IF NOT EXISTS idx_listings_sale_type ON listings(sale_type);
+CREATE INDEX IF NOT EXISTS idx_listings_local_area ON listings(local_area) WHERE local_area IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_listings_extras ON listings USING gin(extras_categories) WHERE array_length(extras_categories, 1) > 0;
+CREATE INDEX IF NOT EXISTS idx_listings_shipping ON listings USING gin(shipping_methods) WHERE shipping_methods != '[]'::jsonb;
 CREATE INDEX IF NOT EXISTS idx_games_cache_expiry ON games(cache_expires_at);
 CREATE INDEX IF NOT EXISTS idx_games_type ON games(game_type); -- Add index for game type
 CREATE INDEX IF NOT EXISTS idx_messages_listing_id ON messages(listing_id);

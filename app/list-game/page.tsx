@@ -2,6 +2,9 @@
 
 import { useState, useEffect, useRef, useMemo } from "react"
 import Image from "next/image"
+import { useAuth } from "@/lib/auth-context"
+import { useRouter } from "next/navigation"
+import { supabase } from "@/lib/db"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -180,6 +183,17 @@ const SHIPPING_OPTIONS = [
 ]
 
 export default function ListGamePage() {
+  // Authentication
+  const { user, loading } = useAuth()
+  const router = useRouter()
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/login?redirect=/list-game')
+    }
+  }, [user, loading, router])
+
   const [currentStep, setCurrentStep] = useState<'sale-type' | 'search' | 'game-details' | 'listing-details'>('sale-type')
 
   const [searchTerm, setSearchTerm] = useState("")
@@ -196,6 +210,11 @@ export default function ListGamePage() {
   const [touchStart, setTouchStart] = useState<number | null>(null)
   const [touchEnd, setTouchEnd] = useState<number | null>(null)
   const [isSwipeActive, setIsSwipeActive] = useState(false)
+
+  // Form submission state
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
+
   const [searchResults, setSearchResults] = useState<BGGSearchResult[]>([])
   const [isSearching, setIsSearching] = useState(false)
   const [searchError, setSearchError] = useState("")
@@ -282,6 +301,86 @@ export default function ListGamePage() {
   // Check if we can swipe back
   const canSwipeBack = () => {
     return currentStep !== 'sale-type' // Can't go back from first step
+  }
+
+  // Handle form submission
+  const handleSubmitListing = async () => {
+    if (!selectedBGGGame) {
+      setSubmitError('Please select a game first')
+      return
+    }
+
+    console.log('🚀 Starting listing submission...')
+    setIsSubmitting(true)
+    setSubmitError(null)
+
+    try {
+      // Prepare the listing data
+      const listingData = {
+        title: selectedBGGGame.name + (formData.versionName ? ` (${formData.versionName})` : ''),
+        description: formData.description || `${selectedBGGGame.name} in ${getConditionLabel(formData.condition)} condition.`,
+        condition: formData.condition,
+        condition_notes: formData.conditionNotes || undefined,
+        price: parseFloat(formData.price),
+        city: formData.city,
+        country: formData.country,
+        local_area: formData.localArea || undefined,
+        pickup_radius: 50, // Default
+        sale_type: formData.saleType as 'fixed-price' | 'auction' | 'bundle' | 'trade' | 'giveaway',
+        shipping_methods: formData.shippingMethods,
+        shipping_costs: formData.shippingCosts,
+        extras_categories: formData.extrasCategories,
+        extras_notes: formData.extrasNotes || undefined,
+        included_items: formData.includedItems,
+        version_name: formData.versionName || undefined,
+        version_id: formData.versionId || undefined,
+        bgg_id: selectedBGGGame.id,
+        bgg_data: selectedBGGGame,
+        images: [], // TODO: Handle photo uploads
+        trading_options: [] // TODO: Implement if needed
+      }
+
+      // Simplified for testing - skip auth complexity
+      console.log('🔐 Using authenticated user from context...')
+      if (!user) {
+        throw new Error('No authenticated user found')
+      }
+      console.log('✅ User found, making API call...')
+
+      // Add timeout to prevent hanging
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 second timeout
+
+      console.log('📤 Sending request with data:', listingData)
+
+      const response = await fetch('/api/listings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-User-Id': user.id,
+        },
+        body: JSON.stringify(listingData),
+        signal: controller.signal
+      })
+
+      clearTimeout(timeoutId)
+      console.log('📡 API response received:', response.status)
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to create listing')
+      }
+
+      // Success! Redirect to games page to see the new listing
+      window.location.href = '/games'
+      
+    } catch (error) {
+      console.error('Error creating listing:', error)
+      setSubmitError(error instanceof Error ? error.message : 'Failed to create listing')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const [formData, setFormData] = useState<FormData>({
@@ -562,9 +661,28 @@ export default function ListGamePage() {
     return hasValidSearchTerm && !isSearching
   }, [hasValidSearchTerm, isSearching])
 
+  // Show loading screen while checking authentication
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-light-beige flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto text-vibrant-orange" />
+          <p className="mt-4 text-dark-green">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Don't render anything if not authenticated (will redirect)
+  if (!user) {
+    return null
+  }
+
   return (
     <div className="min-h-screen bg-light-beige">
       <Navigation />
+      
+
       <div className="container mx-auto px-4 py-8 max-w-7xl">
 
 
@@ -1762,6 +1880,20 @@ export default function ListGamePage() {
                   </CardContent>
                 </Card>
 
+
+
+                {/* Error Display */}
+                {submitError && (
+                  <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                    <p className="text-sm font-medium">Error creating listing:</p>
+                    <p className="text-sm">{submitError}</p>
+                  </div>
+                )}
+
+
+
+
+
                 {/* Navigation */}
                 <div className="flex justify-between pt-4">
                   <Button 
@@ -1774,10 +1906,18 @@ export default function ListGamePage() {
                     Back
                   </Button>
                   <Button 
+                    onClick={handleSubmitListing}
+                    disabled={isSubmitting || !formData.condition || !formData.price || formData.shippingMethods.length === 0 || !formData.country}
                     className="bg-vibrant-orange hover:bg-vibrant-orange/90 text-sm"
-                    disabled={!formData.condition || !formData.price || formData.shippingMethods.length === 0 || !formData.country}
                   >
-                    Create Listing
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Creating...
+                      </>
+                    ) : (
+                      'Create Listing'
+                    )}
                   </Button>
                 </div>
               </CardContent>
