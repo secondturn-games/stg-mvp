@@ -2,6 +2,7 @@
 // Modern XML parsing using fast-xml-parser
 
 import { XMLParser } from 'fast-xml-parser'
+import { decodeHtmlEntities } from '../utils/data-transformers'
 
 // Configure XML parser
 const xmlParser = new XMLParser({
@@ -484,23 +485,7 @@ function isVersionName(name: string): boolean {
   return versionPatterns.some(pattern => pattern.test(name))
 }
 
-/**
- * Decode HTML entities
- */
-export function decodeHtmlEntities(text: string): string {
-  if (!text) return ''
-  
-  return text
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&apos;/g, "'")
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&#(\d+);/g, (match, dec) => String.fromCharCode(dec))
-    .replace(/&#x([0-9a-fA-F]+);/g, (match, hex) => String.fromCharCode(parseInt(hex, 16)))
-}
+
 
 /**
  * Validate XML structure

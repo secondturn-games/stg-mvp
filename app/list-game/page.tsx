@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Loader2, Plus, Euro, Gavel, ExternalLink, Package, Calendar, Users, Cake, Clock, Type } from "lucide-react"
+import { Loader2, Plus, Euro, Gavel, ExternalLink, Package, Calendar, Users, Cake, Clock, Type, Camera, MapPin, Truck, Star, Upload, X, ChevronDown, ChevronUp, Eye, Heart, MessageCircle, Shield, Gift, RefreshCw } from "lucide-react"
 import { Navigation } from "@/components/navigation"
 
 // Utility class for screen reader only content
@@ -82,7 +82,13 @@ interface FormData {
   conditionNotes: string
   country: string
   city: string
+  localArea: string
   includedItems: string[]
+  extrasCategories: string[]
+  extrasNotes: string
+  photos: File[]
+  shippingMethods: string[]
+  shippingCosts: { [key: string]: string }
   tradingOptions: string[]
   listingType: "base-game" | "expansion" | "bundle"
   saleType: "fixed-price" | "auction"
@@ -139,10 +145,57 @@ const isValidBGGGameVersion = (data: unknown): data is BGGGameVersion => {
   )
 }
 
+// Predefined categories for game conditions
+const CONDITION_OPTIONS = [
+  { value: "new-in-shrink", label: "New in Shrink", description: "Brand new, never opened, still in original shrink wrap" },
+  { value: "like-new", label: "Like New", description: "Opened but never played, components like new" },
+  { value: "excellent", label: "Excellent", description: "Played but very well maintained, minimal wear" },
+  { value: "good", label: "Good", description: "Some visible wear, all components present and functional" },
+  { value: "fair", label: "Fair", description: "Noticeable wear, may have minor damage but fully playable" },
+  { value: "poor", label: "Poor", description: "Significant wear or damage, missing pieces possible" }
+]
+
+// Predefined categories for extras/add-ons
+const EXTRAS_OPTIONS = [
+  "Sleeved Cards",
+  "Painted Miniatures", 
+  "Custom Organizer/Insert",
+  "Upgraded Components",
+  "Metal Coins",
+  "Wooden Tokens",
+  "Playmat Included",
+  "Storage Solution",
+  "Extra Dice",
+  "Promo Cards/Items"
+]
+
+// Predefined shipping methods
+const SHIPPING_OPTIONS = [
+  { value: "local-pickup", label: "Local Pickup", description: "Meet in person" },
+  { value: "national-standard", label: "National Standard", description: "5-7 business days" },
+  { value: "national-express", label: "National Express", description: "1-3 business days" },
+  { value: "eu-standard", label: "EU Standard", description: "7-14 business days" },
+  { value: "eu-express", label: "EU Express", description: "3-7 business days" },
+  { value: "worldwide", label: "Worldwide", description: "14-30 business days" }
+]
+
 export default function ListGamePage() {
   const [currentStep, setCurrentStep] = useState<'sale-type' | 'search' | 'game-details' | 'listing-details'>('sale-type')
 
   const [searchTerm, setSearchTerm] = useState("")
+  
+  // Collapsible sections state for Step 4
+  const [expandedSections, setExpandedSections] = useState({
+    extras: false,
+    photos: false,
+    conditionDetails: false,
+    mobilePreview: false
+  })
+
+  // Touch/swipe navigation state
+  const [touchStart, setTouchStart] = useState<number | null>(null)
+  const [touchEnd, setTouchEnd] = useState<number | null>(null)
+  const [isSwipeActive, setIsSwipeActive] = useState(false)
   const [searchResults, setSearchResults] = useState<BGGSearchResult[]>([])
   const [isSearching, setIsSearching] = useState(false)
   const [searchError, setSearchError] = useState("")
@@ -172,6 +225,65 @@ export default function ListGamePage() {
   // Abort controller for cancelling previous requests
   const abortControllerRef = useRef<AbortController | null>(null)
 
+  // Helper function to toggle collapsible sections
+  const toggleSection = (section: keyof typeof expandedSections) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }))
+  }
+
+  // Swipe navigation logic
+  const minSwipeDistance = 50 // Minimum distance for a swipe to register
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null)
+    setTouchStart(e.targetTouches[0].clientX)
+    setIsSwipeActive(true)
+  }
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX)
+  }
+
+  const handleTouchEnd = () => {
+    setIsSwipeActive(false)
+    
+    if (!touchStart || !touchEnd) return
+    
+    const distance = touchStart - touchEnd
+    const isLeftSwipe = distance > minSwipeDistance
+    const isRightSwipe = distance < -minSwipeDistance
+
+    if (isLeftSwipe && canSwipeNext()) {
+      handleNextStep()
+    }
+    if (isRightSwipe && canSwipeBack()) {
+      handleBackStep()
+    }
+  }
+
+  // Check if we can swipe to next step
+  const canSwipeNext = () => {
+    switch (currentStep) {
+      case 'sale-type':
+        return !!formData.saleType
+      case 'search':
+        return !!selectedBGGGame
+      case 'game-details':
+        return !!(formData.players && formData.playtime && formData.age && formData.versionName)
+      case 'listing-details':
+        return false // Last step, no next
+      default:
+        return false
+    }
+  }
+
+  // Check if we can swipe back
+  const canSwipeBack = () => {
+    return currentStep !== 'sale-type' // Can't go back from first step
+  }
+
   const [formData, setFormData] = useState<FormData>({
     title: "",
     year: "",
@@ -184,7 +296,13 @@ export default function ListGamePage() {
     conditionNotes: "",
     country: "",
     city: "",
+    localArea: "",
     includedItems: [],
+    extrasCategories: [],
+    extrasNotes: "",
+    photos: [],
+    shippingMethods: [],
+    shippingCosts: {},
     tradingOptions: [],
     listingType: "base-game",
     saleType: "fixed-price",
@@ -389,6 +507,52 @@ export default function ListGamePage() {
     }
   }
 
+  // Function to handle direct step navigation
+  const handleStepClick = (step: 'sale-type' | 'search' | 'game-details' | 'listing-details') => {
+    // Allow navigation to any completed step or the current step
+    if (step === 'sale-type') {
+      setCurrentStep(step)
+    } else if (step === 'search' && formData.saleType) {
+      setCurrentStep(step)
+    } else if (step === 'game-details' && formData.saleType && selectedBGGGame) {
+      setCurrentStep(step)
+    } else if (step === 'listing-details' && formData.saleType && selectedBGGGame) {
+      setCurrentStep(step)
+    }
+  }
+
+  // Helper function to determine if a step is clickable
+  const isStepClickable = (step: 'sale-type' | 'search' | 'game-details' | 'listing-details') => {
+    if (step === 'sale-type') return true
+    if (step === 'search') return !!formData.saleType
+    if (step === 'game-details') return !!formData.saleType && !!selectedBGGGame
+    if (step === 'listing-details') return !!formData.saleType && !!selectedBGGGame
+    return false
+  }
+
+  // Helper function to check if preview should be shown
+  const canShowPreview = () => {
+    return !!(
+      formData.saleType &&
+      selectedBGGGame &&
+      (currentStep === 'listing-details' || currentStep === 'game-details')
+    )
+  }
+
+  // Helper function to get condition label
+  const getConditionLabel = (condition: string) => {
+    const option = CONDITION_OPTIONS.find(opt => opt.value === condition)
+    return option ? option.label : condition
+  }
+
+  // Helper function to get shipping method labels
+  const getShippingMethodLabels = (methods: string[]) => {
+    return methods.map(method => {
+      const option = SHIPPING_OPTIONS.find(opt => opt.value === method)
+      return option ? option.label : method
+    })
+  }
+
   // Memoized computed values for performance
   const hasValidSearchTerm = useMemo(() => {
     return searchTerm.trim().length >= 2
@@ -401,36 +565,106 @@ export default function ListGamePage() {
   return (
     <div className="min-h-screen bg-light-beige">
       <Navigation />
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
 
 
         {/* Step Indicator */}
         <div className="mb-6 lg:mb-8">
           <div className="flex justify-center">
             <div className="flex items-center space-x-2 lg:space-x-4">
-              <div className={`flex items-center ${currentStep === 'sale-type' ? 'text-vibrant-orange' : 'text-gray-400'}`}>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${currentStep === 'sale-type' ? 'bg-vibrant-orange text-white' : 'bg-gray-200'}`}>
+              {/* Step 1: Listing Type */}
+              <div 
+                className={`flex items-center ${
+                  currentStep === 'sale-type' ? 'text-vibrant-orange' : 'text-gray-400'
+                } ${isStepClickable('sale-type') ? 'cursor-pointer' : 'cursor-default'}`}
+                onClick={() => isStepClickable('sale-type') && handleStepClick('sale-type')}
+              >
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
+                  currentStep === 'sale-type' 
+                    ? 'bg-vibrant-orange text-white' 
+                    : isStepClickable('sale-type')
+                      ? 'bg-gray-200 hover:bg-gray-300'
+                      : 'bg-gray-200'
+                }`}>
                   1
                 </div>
                 <span className="ml-2 text-sm hidden lg:inline">Listing Type</span>
               </div>
+              
               <div className={`w-4 lg:w-8 h-1 ${currentStep === 'search' || currentStep === 'game-details' || currentStep === 'listing-details' ? 'bg-vibrant-orange' : 'bg-gray-200'}`}></div>
-              <div className={`flex items-center ${currentStep === 'search' ? 'text-vibrant-orange' : currentStep === 'game-details' || currentStep === 'listing-details' ? 'text-gray-600' : 'text-gray-400'}`}>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${currentStep === 'search' ? 'bg-vibrant-orange text-white' : currentStep === 'game-details' || currentStep === 'listing-details' ? 'bg-gray-300' : 'bg-gray-200'}`}>
+              
+              {/* Step 2: Find Game */}
+              <div 
+                className={`flex items-center ${
+                  currentStep === 'search' 
+                    ? 'text-vibrant-orange' 
+                    : currentStep === 'game-details' || currentStep === 'listing-details' 
+                      ? 'text-gray-600' 
+                      : 'text-gray-400'
+                } ${isStepClickable('search') ? 'cursor-pointer' : 'cursor-default'}`}
+                onClick={() => isStepClickable('search') && handleStepClick('search')}
+              >
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
+                  currentStep === 'search' 
+                    ? 'bg-vibrant-orange text-white' 
+                    : currentStep === 'game-details' || currentStep === 'listing-details' 
+                      ? isStepClickable('search')
+                        ? 'bg-gray-300 hover:bg-gray-400 text-white'
+                        : 'bg-gray-300'
+                      : isStepClickable('search')
+                        ? 'bg-gray-200 hover:bg-gray-300'
+                        : 'bg-gray-200'
+                }`}>
                   2
                 </div>
                 <span className="ml-2 text-sm hidden lg:inline">Find Game</span>
               </div>
+              
               <div className={`w-4 lg:w-8 h-1 ${currentStep === 'game-details' || currentStep === 'listing-details' ? 'bg-vibrant-orange' : 'bg-gray-200'}`}></div>
-              <div className={`flex items-center ${currentStep === 'game-details' ? 'text-vibrant-orange' : currentStep === 'listing-details' ? 'text-gray-600' : 'text-gray-400'}`}>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${currentStep === 'game-details' ? 'bg-vibrant-orange text-white' : currentStep === 'listing-details' ? 'bg-gray-300' : 'bg-gray-200'}`}>
+              
+              {/* Step 3: Game Details */}
+              <div 
+                className={`flex items-center ${
+                  currentStep === 'game-details' 
+                    ? 'text-vibrant-orange' 
+                    : currentStep === 'listing-details' 
+                      ? 'text-gray-600' 
+                      : 'text-gray-400'
+                } ${isStepClickable('game-details') ? 'cursor-pointer' : 'cursor-default'}`}
+                onClick={() => isStepClickable('game-details') && handleStepClick('game-details')}
+              >
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
+                  currentStep === 'game-details' 
+                    ? 'bg-vibrant-orange text-white' 
+                    : currentStep === 'listing-details' 
+                      ? isStepClickable('game-details')
+                        ? 'bg-gray-300 hover:bg-gray-400 text-white'
+                        : 'bg-gray-300'
+                      : isStepClickable('game-details')
+                        ? 'bg-gray-200 hover:bg-gray-300'
+                        : 'bg-gray-200'
+                }`}>
                   3
                 </div>
                 <span className="ml-2 text-sm hidden lg:inline">Game Details</span>
               </div>
+              
               <div className={`w-4 lg:w-8 h-1 ${currentStep === 'listing-details' ? 'bg-vibrant-orange' : 'bg-gray-200'}`}></div>
-              <div className={`flex items-center ${currentStep === 'listing-details' ? 'text-vibrant-orange' : 'text-gray-400'}`}>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${currentStep === 'listing-details' ? 'bg-vibrant-orange text-white' : 'bg-gray-200'}`}>
+              
+              {/* Step 4: Listing Details */}
+              <div 
+                className={`flex items-center ${
+                  currentStep === 'listing-details' ? 'text-vibrant-orange' : 'text-gray-400'
+                } ${isStepClickable('listing-details') ? 'cursor-pointer' : 'cursor-default'}`}
+                onClick={() => isStepClickable('listing-details') && handleStepClick('listing-details')}
+              >
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
+                  currentStep === 'listing-details' 
+                    ? 'bg-vibrant-orange text-white' 
+                    : isStepClickable('listing-details')
+                      ? 'bg-gray-200 hover:bg-gray-300'
+                      : 'bg-gray-200'
+                }`}>
                   4
                 </div>
                 <span className="ml-2 text-sm hidden lg:inline">Listing Details</span>
@@ -439,8 +673,19 @@ export default function ListGamePage() {
           </div>
         </div>
 
-        {/* Step Content */}
-        {currentStep === 'sale-type' && (
+        {/* Main Content Layout */}
+        <div 
+          className={`lg:flex lg:gap-8 transition-transform duration-75 ${
+            isSwipeActive ? 'scale-[0.99]' : 'scale-100'
+          }`}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+        >
+          {/* Left Column - Form Content */}
+          <div className="lg:flex-1 lg:max-w-4xl">
+            {/* Step Content */}
+            {currentStep === 'sale-type' && (
           <>
             <Card>
               <CardHeader>
@@ -449,48 +694,83 @@ export default function ListGamePage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 gap-4">
-                  <div
-                    className="p-4 border-2 rounded-lg cursor-pointer transition-colors border-vibrant-orange bg-warm-yellow/10 focus:outline-none focus:ring-2 focus:ring-vibrant-orange focus:ring-offset-2"
+                  <Card 
+                    className="border-l-4 border-l-vibrant-orange bg-warm-yellow/5 hover:bg-warm-yellow/10 transition-colors cursor-pointer"
                     onClick={() => {
                       setFormData(prev => ({ ...prev, saleType: 'fixed-price' }))
+                      handleNextStep()
                     }}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault()
                         setFormData(prev => ({ ...prev, saleType: 'fixed-price' }))
+                        handleNextStep()
                       }
                     }}
                     tabIndex={0}
                     role="button"
                     aria-label="Select Fixed Price listing type"
                   >
-                    <div className="flex items-center space-x-3">
-                      <div className="p-2 bg-vibrant-orange/10 rounded-lg">
-                        <Euro className="w-6 h-6 text-vibrant-orange" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-dark-green">Fixed Price</h3>
-                        <p className="text-sm text-gray-600">You set the price</p>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div
-                    className="p-4 border-2 rounded-lg transition-colors border-gray-200 bg-gray-50 cursor-not-allowed opacity-60"
-                  >
-                    <div className="flex items-center space-x-3">
-                      <div className="p-2 bg-gray-200 rounded-lg">
-                        <Gavel className="w-6 h-6 text-gray-400" />
-                      </div>
-                      <div>
-                        <div className="flex items-center space-x-2">
-                          <h3 className="font-semibold text-gray-500">Auction</h3>
-                          <Badge variant="outline" className="text-xs border-vibrant-orange text-vibrant-orange">Coming Soon</Badge>
+                    <CardContent className="p-4">
+                      <div className="flex items-center space-x-3">
+                        <div className="p-2 bg-vibrant-orange/10 rounded-lg">
+                          <Euro className="w-6 h-6 text-vibrant-orange" />
                         </div>
-                        <p className="text-sm text-gray-500">Let the community decide</p>
+                        <div>
+                          <h3 className="font-semibold text-dark-green">Fixed Price</h3>
+                          <p className="text-sm text-gray-600">You set the price</p>
+                        </div>
                       </div>
-                    </div>
-                  </div>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card className="bg-gray-50 cursor-not-allowed opacity-60">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className="font-semibold text-gray-500">More Ways to List</h3>
+                        <Badge variant="outline" className="text-xs border-vibrant-orange text-vibrant-orange">Coming Soon</Badge>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="flex items-center space-x-2">
+                          <div className="p-1.5 bg-gray-200 rounded">
+                            <Package className="w-4 h-4 text-gray-400" />
+                          </div>
+                          <div>
+                            <div className="text-sm font-medium text-gray-500">Bundle</div>
+                            <div className="text-xs text-gray-400">Sell more together</div>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <div className="p-1.5 bg-gray-200 rounded">
+                            <Gavel className="w-4 h-4 text-gray-400" />
+                          </div>
+                          <div>
+                            <div className="text-sm font-medium text-gray-500">Auction</div>
+                            <div className="text-xs text-gray-400">Let community decide</div>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <div className="p-1.5 bg-gray-200 rounded">
+                            <RefreshCw className="w-4 h-4 text-gray-400" />
+                          </div>
+                          <div>
+                            <div className="text-sm font-medium text-gray-500">Trade / Swap</div>
+                            <div className="text-xs text-gray-400">Game for game</div>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <div className="p-1.5 bg-gray-200 rounded relative">
+                            <Gift className="w-4 h-4 text-gray-400" />
+                            <Heart className="w-2 h-2 text-gray-400 absolute -top-0.5 -right-0.5" />
+                          </div>
+                          <div>
+                            <div className="text-sm font-medium text-gray-500">Giveaway</div>
+                            <div className="text-xs text-gray-400">Pass it forward</div>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
                 
                 <div className="flex justify-end pt-4">
@@ -525,7 +805,7 @@ export default function ListGamePage() {
             <Card>
               <CardHeader>
                 <CardTitle className="text-dark-green text-lg lg:text-xl">Find Your Game</CardTitle>
-                <CardDescription className="text-sm">Filter between base games or expansions, and we’ll bring up official data from BGG</CardDescription>
+                <CardDescription className="text-sm">Choose whether you’re looking for a Base Game or an Expansion, and we’ll pull in the official details from BGG</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
@@ -592,7 +872,7 @@ export default function ListGamePage() {
                         className="border-warm-yellow focus:border-vibrant-orange placeholder:text-gray-400 text-sm lg:text-base"
                       />
                       <div id="search-help" className="sr-only">
-                        Enter at least 2 characters to search for board games or expansions
+                      Type the game name (at least 2 letters)
                       </div>
                       
                       {/* Clear button - show when there's text in the input */}
@@ -640,7 +920,7 @@ export default function ListGamePage() {
                 {searchTerm.trim().length > 0 && !hasValidSearchTerm && !isSearching && (
                   <div className="p-3 bg-light-green/50 border border-light-green rounded-lg">
                     <p className="text-sm lg:text-base text-dark-green">
-                      💡 Please enter at least 2 characters to search for games
+                      💡 Type the game name (at least 2 letters)
                     </p>
                   </div>
                 )}
@@ -729,7 +1009,7 @@ export default function ListGamePage() {
                     variant="outline" 
                     onClick={handleBackStep} 
                     size="sm" 
-                    className="text-sm"
+                    className="text-sm border-warm-yellow text-dark-green hover:bg-warm-yellow/10"
                     aria-label="Go back to previous step"
                   >
                     Back
@@ -1108,24 +1388,395 @@ export default function ListGamePage() {
           </>
         )}
 
+
+
         {currentStep === 'listing-details' && (
           <>
             <Card>
               <CardHeader>
                 <CardTitle className="text-dark-green text-lg lg:text-xl">Listing Details</CardTitle>
-                <CardDescription className="text-sm">Configure your listing details</CardDescription>
+                <CardDescription className="text-sm">Set your price, condition, and photos to complete your listing</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="text-center py-6 lg:py-8">
-                  <p className="text-gray-600 text-sm lg:text-base">This step will be implemented next</p>
-                  <p className="text-xs lg:text-sm text-gray-500 mt-2">Description, condition, price, photos, etc.</p>
-                </div>
                 
+                {/* Game Condition Section - Required */}
+                <Card className="border-l-4 border-l-vibrant-orange bg-warm-yellow/5 hover:bg-warm-yellow/10 transition-colors">
+                  <CardContent className="p-4">
+                    <div className="flex items-center space-x-2 mb-3">
+                      <div className="p-2 bg-vibrant-orange/10 rounded-lg">
+                        <Star className="w-4 h-4 text-vibrant-orange" />
+                      </div>
+                      <Label className="text-sm font-medium text-dark-green">Game Condition *</Label>
+                    </div>
+                    <Select 
+                      value={formData.condition} 
+                      onValueChange={(value) => setFormData(prev => ({ ...prev, condition: value }))}
+                    >
+                      <SelectTrigger className="w-full border-gray-300 focus:border-vibrant-orange">
+                        <SelectValue placeholder="Select condition..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {CONDITION_OPTIONS.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            <div>
+                              <div className="font-medium">{option.label}</div>
+                              <div className="text-xs text-gray-500">{option.description}</div>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    
+                    {/* Collapsible Additional Condition Details */}
+                    <div className="mt-3">
+                      <button
+                        type="button"
+                        onClick={() => toggleSection('conditionDetails')}
+                        className="flex items-center space-x-2 text-sm text-gray-600 hover:text-vibrant-orange transition-colors p-2 -m-2 rounded"
+                      >
+                        {expandedSections.conditionDetails ? (
+                          <ChevronUp className="w-4 h-4" />
+                        ) : (
+                          <ChevronDown className="w-4 h-4" />
+                        )}
+                        <span>Add condition details (optional)</span>
+                      </button>
+                      {expandedSections.conditionDetails && (
+                        <div className="mt-2 animate-in slide-in-from-top-1 duration-200">
+                          <textarea
+                            id="condition-notes"
+                            className="w-full p-3 border border-gray-300 rounded-md text-sm focus:border-vibrant-orange focus:ring-1 focus:ring-vibrant-orange"
+                            rows={3}
+                            placeholder="Describe any missing pieces, damage, or other condition details..."
+                            value={formData.conditionNotes}
+                            onChange={(e) => setFormData(prev => ({ ...prev, conditionNotes: e.target.value }))}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Pricing Section - Required */}
+                <Card className="border-l-4 border-l-vibrant-orange bg-warm-yellow/5 hover:bg-warm-yellow/10 transition-colors">
+                  <CardContent className="p-4">
+                    <div className="flex items-center space-x-2 mb-3">
+                      <div className="p-2 bg-vibrant-orange/10 rounded-lg">
+                        <Euro className="w-4 h-4 text-vibrant-orange" />
+                      </div>
+                      <Label htmlFor="price" className="text-sm font-medium text-dark-green">Game Price (EUR) *</Label>
+                    </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                      <Input
+                        id="price"
+                        type="number"
+                        step="0.01"
+                        placeholder="25.00"
+                        value={formData.price}
+                        onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
+                        className="border-gray-300 focus:border-vibrant-orange focus:ring-1 focus:ring-vibrant-orange"
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Shipping Methods Section - Required */}
+                <Card className="border-l-4 border-l-vibrant-orange bg-warm-yellow/5 hover:bg-warm-yellow/10 transition-colors">
+                  <CardContent className="p-4">
+                    <div className="flex items-center space-x-2 mb-3">
+                      <div className="p-2 bg-vibrant-orange/10 rounded-lg">
+                        <Truck className="w-4 h-4 text-vibrant-orange" />
+                      </div>
+                      <Label className="text-sm font-medium text-dark-green">Shipping Options *</Label>
+                    </div>
+                    <div className="space-y-3">
+                      {SHIPPING_OPTIONS.map((option) => (
+                        <div 
+                          key={option.value} 
+                          className={`border rounded-lg p-3 transition-colors ${
+                            formData.shippingMethods.includes(option.value)
+                              ? 'border-vibrant-orange bg-warm-yellow/10'
+                              : 'border-gray-200 hover:border-vibrant-orange/50'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <label className="flex items-center space-x-3 cursor-pointer flex-1">
+                              <input
+                                type="checkbox"
+                                checked={formData.shippingMethods.includes(option.value)}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setFormData(prev => ({
+                                      ...prev,
+                                      shippingMethods: [...prev.shippingMethods, option.value],
+                                      shippingCosts: { ...prev.shippingCosts, [option.value]: '0.00' }
+                                    }))
+                                  } else {
+                                    setFormData(prev => ({
+                                      ...prev,
+                                      shippingMethods: prev.shippingMethods.filter(m => m !== option.value),
+                                      shippingCosts: Object.fromEntries(
+                                        Object.entries(prev.shippingCosts).filter(([key]) => key !== option.value)
+                                      )
+                                    }))
+                                  }
+                                }}
+                                className="rounded border-gray-300 text-vibrant-orange focus:ring-vibrant-orange"
+                              />
+                              <div>
+                                <div className="font-medium text-sm">{option.label}</div>
+                                <div className="text-xs text-gray-500">{option.description}</div>
+                              </div>
+                            </label>
+                            {formData.shippingMethods.includes(option.value) && (
+                              <div className="flex items-center space-x-2">
+                                <Euro className="w-3 h-3 text-gray-400" />
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  placeholder="0.00"
+                                  value={formData.shippingCosts[option.value] || ''}
+                                  onChange={(e) => setFormData(prev => ({
+                                    ...prev,
+                                    shippingCosts: { ...prev.shippingCosts, [option.value]: e.target.value }
+                                  }))}
+                                  className="w-20 text-sm border-gray-300 focus:border-vibrant-orange focus:ring-1 focus:ring-vibrant-orange"
+                                />
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Location Section - Required */}
+                <Card className="border-l-4 border-l-vibrant-orange bg-warm-yellow/5 hover:bg-warm-yellow/10 transition-colors">
+                  <CardContent className="p-4">
+                    <div className="flex items-center space-x-2 mb-3">
+                      <div className="p-2 bg-vibrant-orange/10 rounded-lg">
+                        <MapPin className="w-4 h-4 text-vibrant-orange" />
+                      </div>
+                      <Label className="text-sm font-medium text-dark-green">Your Location *</Label>
+                    </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                      <div>
+                        <Label htmlFor="country" className="text-sm text-gray-600">Country</Label>
+                        <Input
+                          id="country"
+                          placeholder="Germany"
+                          value={formData.country}
+                          onChange={(e) => setFormData(prev => ({ ...prev, country: e.target.value }))}
+                          className="border-gray-300 focus:border-vibrant-orange focus:ring-1 focus:ring-vibrant-orange"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="city" className="text-sm text-gray-600">City</Label>
+                        <Input
+                          id="city"
+                          placeholder="Berlin"
+                          value={formData.city}
+                          onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))}
+                          className="border-gray-300 focus:border-vibrant-orange focus:ring-1 focus:ring-vibrant-orange"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="local-area" className="text-sm text-gray-600">Local Area</Label>
+                        <Input
+                          id="local-area"
+                          placeholder="Mitte, Kreuzberg..."
+                          value={formData.localArea}
+                          onChange={(e) => setFormData(prev => ({ ...prev, localArea: e.target.value }))}
+                          className="border-gray-300 focus:border-vibrant-orange focus:ring-1 focus:ring-vibrant-orange"
+                        />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Collapsible Extras & Add-ons Section */}
+                <Card className={`transition-all duration-200 cursor-pointer ${
+                  expandedSections.extras || formData.extrasCategories.length > 0
+                    ? 'border-l-4 border-l-light-green bg-light-green/5 hover:bg-light-green/10'
+                    : 'border border-gray-200 hover:border-light-green/50 hover:bg-light-green/5'
+                }`}>
+                  <CardContent className="p-3">
+                    <button
+                      type="button"
+                      onClick={() => toggleSection('extras')}
+                      className="flex items-center justify-between w-full text-left"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <div className="p-2 bg-light-green/10 rounded-lg">
+                          <Plus className="w-4 h-4 text-light-green" />
+                        </div>
+                        <Label className="text-sm font-medium text-dark-green cursor-pointer">
+                          Extras & Add-ons (optional)
+                        </Label>
+                        {formData.extrasCategories.length > 0 && (
+                          <Badge variant="outline" className="text-xs border-light-green text-light-green">
+                            {formData.extrasCategories.length} selected
+                          </Badge>
+                        )}
+                      </div>
+                      {expandedSections.extras ? (
+                        <ChevronUp className="w-4 h-4 text-gray-400 hover:text-light-green transition-colors" />
+                      ) : (
+                        <ChevronDown className="w-4 h-4 text-gray-400 hover:text-light-green transition-colors" />
+                      )}
+                    </button>
+                  
+                    {expandedSections.extras && (
+                      <div className="mt-4 space-y-4 animate-in slide-in-from-top-1 duration-200">
+                        <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
+                          {EXTRAS_OPTIONS.map((extra) => (
+                            <label
+                              key={extra}
+                              className={`flex items-center space-x-2 p-2 border rounded-lg cursor-pointer transition-colors text-sm ${
+                                formData.extrasCategories.includes(extra)
+                                  ? 'border-light-green bg-light-green/10'
+                                  : 'border-gray-200 hover:border-light-green/50'
+                              }`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={formData.extrasCategories.includes(extra)}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setFormData(prev => ({
+                                      ...prev,
+                                      extrasCategories: [...prev.extrasCategories, extra]
+                                    }))
+                                  } else {
+                                    setFormData(prev => ({
+                                      ...prev,
+                                      extrasCategories: prev.extrasCategories.filter(item => item !== extra)
+                                    }))
+                                  }
+                                }}
+                                className="rounded border-gray-300 text-light-green focus:ring-light-green"
+                              />
+                              <span>{extra}</span>
+                            </label>
+                          ))}
+                        </div>
+                        <div>
+                          <Label htmlFor="extras-notes" className="text-sm text-gray-600">
+                            Other extras or special features
+                          </Label>
+                          <textarea
+                            id="extras-notes"
+                            className="w-full mt-1 p-3 border border-gray-300 rounded-md text-sm focus:border-light-green focus:ring-1 focus:ring-light-green"
+                            rows={2}
+                            placeholder="Describe any other extras, upgrades, or special features..."
+                            value={formData.extrasNotes}
+                            onChange={(e) => setFormData(prev => ({ ...prev, extrasNotes: e.target.value }))}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Collapsible Photos Section */}
+                <Card className={`transition-all duration-200 cursor-pointer ${
+                  expandedSections.photos || formData.photos.length > 0
+                    ? 'border-l-4 border-l-blue-500 bg-blue-50/50 hover:bg-blue-50/70'
+                    : 'border border-gray-200 hover:border-blue-500/50 hover:bg-blue-50/30'
+                }`}>
+                  <CardContent className="p-3">
+                    <button
+                      type="button"
+                      onClick={() => toggleSection('photos')}
+                      className="flex items-center justify-between w-full text-left"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <div className="p-2 bg-blue-500/10 rounded-lg">
+                          <Camera className="w-4 h-4 text-blue-500" />
+                        </div>
+                        <Label className="text-sm font-medium text-dark-green cursor-pointer">
+                          Photos (optional, max 3)
+                        </Label>
+                        {formData.photos.length > 0 && (
+                          <Badge variant="outline" className="text-xs border-blue-500 text-blue-500">
+                            {formData.photos.length} uploaded
+                          </Badge>
+                        )}
+                      </div>
+                      {expandedSections.photos ? (
+                        <ChevronUp className="w-4 h-4 text-gray-400 hover:text-blue-500 transition-colors" />
+                      ) : (
+                        <ChevronDown className="w-4 h-4 text-gray-400 hover:text-blue-500 transition-colors" />
+                      )}
+                    </button>
+                    
+                    {expandedSections.photos && (
+                      <div className="mt-4 space-y-3 animate-in slide-in-from-top-1 duration-200">
+                        <div 
+                          className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-500 hover:bg-blue-50/30 transition-colors cursor-pointer"
+                          onClick={() => document.getElementById('photo-upload')?.click()}
+                        >
+                          <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                          <p className="text-sm text-gray-600">Click to upload photos</p>
+                          <p className="text-xs text-gray-500">PNG, JPG up to 5MB each</p>
+                        </div>
+                        <input
+                          id="photo-upload"
+                          type="file"
+                          accept="image/png,image/jpeg,image/webp"
+                          multiple
+                          className="hidden"
+                          onChange={(e) => {
+                            const files = Array.from(e.target.files || [])
+                            const validFiles = files.filter(file => file.size <= 5 * 1024 * 1024) // 5MB limit
+                            const newPhotos = [...formData.photos, ...validFiles].slice(0, 3) // Max 3 photos
+                            setFormData(prev => ({ ...prev, photos: newPhotos }))
+                          }}
+                        />
+                        {formData.photos.length > 0 && (
+                          <div className="flex space-x-2">
+                            {formData.photos.map((photo, index) => (
+                              <div key={index} className="relative">
+                                <div className="w-20 h-20 bg-blue-50 rounded-lg border border-blue-200 flex items-center justify-center">
+                                  <Camera className="w-6 h-6 text-blue-400" />
+                                </div>
+                                <button
+                                  onClick={() => {
+                                    setFormData(prev => ({
+                                      ...prev,
+                                      photos: prev.photos.filter((_, i) => i !== index)
+                                    }))
+                                  }}
+                                  className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600 transition-colors"
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                                <p className="text-xs text-gray-500 mt-1 text-center truncate">{photo.name}</p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Navigation */}
                 <div className="flex justify-between pt-4">
-                  <Button variant="outline" onClick={handleBackStep} size="sm" className="text-sm">
+                  <Button 
+                    variant="outline" 
+                    onClick={handleBackStep} 
+                    size="sm" 
+                    className="text-sm border-warm-yellow text-dark-green hover:bg-warm-yellow/10"
+                    aria-label="Go back to game details step"
+                  >
                     Back
                   </Button>
-                  <Button disabled className="bg-vibrant-orange hover:bg-vibrant-orange/90 text-sm">
+                  <Button 
+                    className="bg-vibrant-orange hover:bg-vibrant-orange/90 text-sm"
+                    disabled={!formData.condition || !formData.price || formData.shippingMethods.length === 0 || !formData.country}
+                  >
                     Create Listing
                   </Button>
                 </div>
@@ -1150,6 +1801,192 @@ export default function ListGamePage() {
             </div>
           </>
         )}
+          </div>
+
+          {/* Right Column - Listing Preview Sidebar */}
+          {canShowPreview() && (
+            <div className="lg:w-96 lg:flex-shrink-0">
+              {/* Mobile Preview Toggle */}
+              <div className="lg:hidden mb-4">
+                <Button
+                  variant="outline"
+                  onClick={() => setExpandedSections(prev => ({ ...prev, mobilePreview: !prev.mobilePreview }))}
+                  className="w-full flex items-center justify-between border-vibrant-orange text-vibrant-orange hover:bg-vibrant-orange/10"
+                >
+                  <div className="flex items-center space-x-2">
+                    <Eye className="w-4 h-4" />
+                    <span>Preview Listing</span>
+                  </div>
+                  {expandedSections.mobilePreview ? (
+                    <ChevronUp className="w-4 h-4" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4" />
+                  )}
+                </Button>
+              </div>
+
+              {/* Preview Content */}
+              <div className={`${!expandedSections.mobilePreview ? 'hidden' : 'block'} lg:block`}>
+                <div className="lg:sticky lg:top-8">
+                  <Card className="border-2 border-vibrant-orange bg-gradient-to-r from-warm-yellow/10 to-warm-beige/10">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center space-x-2">
+                        <div className="p-2 bg-vibrant-orange/10 rounded-lg">
+                          <Eye className="w-4 h-4 text-vibrant-orange" />
+                        </div>
+                        <div>
+                          <CardTitle className="text-dark-green text-base">Listing Preview</CardTitle>
+                          <CardDescription className="text-xs">
+                            {currentStep === 'game-details' ? 'Add details in Step 4 to enhance' : 'Live preview'}
+                          </CardDescription>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      {/* Preview Content */}
+                      <div className="bg-white rounded-lg p-3 shadow-sm border">
+                        <div className="flex items-start space-x-3 mb-3">
+                          {selectedBGGGame?.thumbnail && (
+                            <div className="flex-shrink-0">
+                              <Image
+                                src={selectedBGGGame.thumbnail}
+                                alt={selectedBGGGame.name}
+                                width={60}
+                                height={60}
+                                className="rounded-lg"
+                              />
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <h3 className="text-base font-bold text-dark-green leading-tight mb-1">
+                              {selectedBGGGame?.name}
+                            </h3>
+                            {formData.versionName && formData.versionName !== selectedBGGGame?.name && (
+                              <p className="text-xs text-gray-600 mb-2">{formData.versionName}</p>
+                            )}
+                            
+                            {/* Compact game stats */}
+                            <div className="grid grid-cols-2 gap-1 text-xs text-gray-500">
+                              {selectedBGGGame?.yearpublished && (
+                                <div className="flex items-center">
+                                  <Calendar className="w-3 h-3 mr-1 text-vibrant-orange" />
+                                  <span>{selectedBGGGame.yearpublished}</span>
+                                </div>
+                              )}
+                              {formData.players && (
+                                <div className="flex items-center">
+                                  <Users className="w-3 h-3 mr-1 text-vibrant-orange" />
+                                  <span>{formData.players}p</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Price section */}
+                        <div className="text-center mb-3 p-2 bg-gray-50 rounded">
+                          {formData.price ? (
+                            <div className="text-xl font-bold text-vibrant-orange">€{formData.price}</div>
+                          ) : (
+                            <div className="text-sm text-gray-400">Add price in Step 4</div>
+                          )}
+                          {formData.condition && (
+                            <div className="text-xs text-gray-500">{getConditionLabel(formData.condition)}</div>
+                          )}
+                        </div>
+
+                        {/* Compact details */}
+                        <div className="space-y-2 text-xs">
+                          {formData.condition && (
+                            <div>
+                              <div className="flex items-center mb-1">
+                                <Star className="w-3 h-3 mr-1 text-vibrant-orange" />
+                                <span className="font-medium text-dark-green">Condition</span>
+                              </div>
+                              <div className="text-gray-600 ml-4">{getConditionLabel(formData.condition)}</div>
+                              {formData.conditionNotes && (
+                                <div className="text-gray-500 ml-4 truncate">{formData.conditionNotes}</div>
+                              )}
+                            </div>
+                          )}
+
+                          {formData.extrasCategories.length > 0 && (
+                            <div>
+                              <div className="flex items-center mb-1">
+                                <Plus className="w-3 h-3 mr-1 text-light-green" />
+                                <span className="font-medium text-dark-green">Extras</span>
+                              </div>
+                              <div className="ml-4 flex flex-wrap gap-1">
+                                {formData.extrasCategories.slice(0, 3).map((extra) => (
+                                  <Badge key={extra} variant="outline" className="text-xs border-light-green text-light-green px-1 py-0">
+                                    {extra}
+                                  </Badge>
+                                ))}
+                                {formData.extrasCategories.length > 3 && (
+                                  <Badge variant="outline" className="text-xs border-gray-300 text-gray-500 px-1 py-0">
+                                    +{formData.extrasCategories.length - 3}
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+                          )}
+
+                          {formData.photos.length > 0 && (
+                            <div>
+                              <div className="flex items-center mb-1">
+                                <Camera className="w-3 h-3 mr-1 text-blue-500" />
+                                <span className="font-medium text-dark-green">Photos ({formData.photos.length})</span>
+                              </div>
+                              <div className="ml-4 flex space-x-1">
+                                {formData.photos.slice(0, 4).map((photo, index) => (
+                                  <div key={index} className="w-6 h-6 bg-blue-50 border border-blue-200 rounded flex items-center justify-center">
+                                    <Camera className="w-3 h-3 text-blue-400" />
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {formData.shippingMethods.length > 0 && (
+                            <div>
+                              <div className="flex items-center mb-1">
+                                <Truck className="w-3 h-3 mr-1 text-vibrant-orange" />
+                                <span className="font-medium text-dark-green">Shipping</span>
+                              </div>
+                              <div className="ml-4 space-y-1">
+                                {getShippingMethodLabels(formData.shippingMethods).slice(0, 2).map((label, index) => (
+                                  <div key={label} className="flex justify-between text-gray-600">
+                                    <span className="truncate">{label}</span>
+                                    <span>€{formData.shippingCosts[formData.shippingMethods[index]] || '0.00'}</span>
+                                  </div>
+                                ))}
+                                {formData.shippingMethods.length > 2 && (
+                                  <div className="text-gray-500">+{formData.shippingMethods.length - 2} more options</div>
+                                )}
+                              </div>
+                            </div>
+                          )}
+
+                          {(formData.country || formData.city) && (
+                            <div>
+                              <div className="flex items-center mb-1">
+                                <MapPin className="w-3 h-3 mr-1 text-vibrant-orange" />
+                                <span className="font-medium text-dark-green">Location</span>
+                              </div>
+                              <div className="ml-4 text-gray-600">
+                                {formData.country}{formData.city && `, ${formData.city}`}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )

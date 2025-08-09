@@ -1,7 +1,8 @@
 // Search Parser for BGG Service
 // Handles parsing BGG search XML responses using modern XML parsing
 
-import { parseXML, validateXML, cleanXML, decodeHtmlEntities } from './xml-parser'
+import { parseXML, validateXML, cleanXML } from './xml-parser'
+import { decodeHtmlEntities } from '../utils/data-transformers'
 import type { BGGAPISearchItem } from '../types'
 
 export class SearchParser {
