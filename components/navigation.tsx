@@ -6,13 +6,42 @@ import { Plus, User, LogOut, Menu, X } from "lucide-react"
 import Link from "next/link"
 import { useState } from "react"
 import Image from "next/image"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 export function Navigation() {
   const { user, profile, signOut } = useAuth()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
+  // Helper function to get avatar display
+  const getAvatarDisplay = () => {
+    if (profile?.avatar) {
+      return {
+        src: profile.avatar,
+        fallback: profile.username?.charAt(0).toUpperCase() || 'U'
+      }
+    }
+    
+    // For email users, use first letter of email (which is their username)
+    if (profile?.username && profile.username.includes('@')) {
+      return {
+        src: null,
+        fallback: profile.username.charAt(0).toUpperCase()
+      }
+    }
+    
+    // Fallback to first letter of username or generic user
+    return {
+      src: null,
+      fallback: profile?.username?.charAt(0).toUpperCase() || 'U'
+    }
+  }
+
+
+
+
+
   return (
-    <header className="border-b-2 border-[#29432B] bg-[#E6EAD7]/95 backdrop-blur-sm sticky top-0 z-50">
+    <header className="border-b-2 border-dark-green bg-light-beige/95 backdrop-blur-sm sticky top-0 z-50">
       <div className="px-4 py-3">
         <div className="flex items-center justify-between">
           <Link href="/" className="flex items-center">
@@ -26,20 +55,34 @@ export function Navigation() {
             />
           </Link>
 
-          {/* Mobile menu button */}
-          <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="lg:hidden p-2">
-            {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-          </button>
+                     {/* Mobile menu button and avatar */}
+           <div className="lg:hidden flex items-center gap-3">
+             {user && (
+               <Button variant="ghost" asChild className="p-2 h-auto">
+                 <Link href="/profile">
+                   <Avatar className="w-8 h-8">
+                     <AvatarImage src={getAvatarDisplay().src || undefined} alt={profile?.username || 'Profile'} />
+                     <AvatarFallback className="bg-vibrant-orange text-white font-semibold text-sm">
+                       {getAvatarDisplay().fallback}
+                     </AvatarFallback>
+                   </Avatar>
+                 </Link>
+               </Button>
+             )}
+             <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="p-2">
+               {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+             </button>
+           </div>
 
           {/* Desktop navigation */}
-          <nav className="hidden lg:flex items-center space-x-6">
-            <Link href="/games" className="text-gray-600 hover:text-vibrant-orange transition-colors">
+          <nav className="hidden lg:flex items-center space-x-8">
+            <Link href="/games" className="text-dark-green hover:text-vibrant-orange transition-colors font-medium">
               Browse Games
             </Link>
-            <Link href="/how-it-works" className="text-gray-600 hover:text-vibrant-orange transition-colors">
+            <Link href="/how-it-works" className="text-dark-green hover:text-vibrant-orange transition-colors font-medium">
               How It Works
             </Link>
-            <Link href="/community" className="text-gray-600 hover:text-vibrant-orange transition-colors">
+            <Link href="/community" className="text-dark-green hover:text-vibrant-orange transition-colors font-medium">
               Community
             </Link>
           </nav>
@@ -54,24 +97,21 @@ export function Navigation() {
                     List a Game
                   </Link>
                 </Button>
-                <Button variant="ghost" asChild>
-                  <Link href="/profile">
-                    <User className="w-4 h-4 mr-2" />
-                    {profile?.username || 'Profile'}
-                  </Link>
-                </Button>
-                <Button variant="outline" onClick={signOut}>
-                  <LogOut className="w-4 h-4 mr-2" />
-                  Sign Out
-                </Button>
+                                 <Button variant="ghost" asChild className="p-2 h-auto">
+                   <Link href="/profile">
+                     <Avatar className="w-8 h-8">
+                       <AvatarImage src={getAvatarDisplay().src || undefined} alt={profile?.username || 'Profile'} />
+                       <AvatarFallback className="bg-vibrant-orange text-white font-semibold text-sm">
+                         {getAvatarDisplay().fallback}
+                       </AvatarFallback>
+                     </Avatar>
+                   </Link>
+                 </Button>
               </>
             ) : (
               <>
-                <Button variant="ghost" asChild>
-                  <Link href="/login">Sign In</Link>
-                </Button>
                 <Button asChild className="bg-vibrant-orange hover:bg-vibrant-orange/90">
-                  <Link href="/signup">Join Community</Link>
+                  <Link href="/join">Join the Table</Link>
                 </Button>
               </>
             )}
@@ -82,13 +122,13 @@ export function Navigation() {
         {mobileMenuOpen && (
           <div className="lg:hidden mt-4 pb-4 border-t pt-4">
             <nav className="flex flex-col space-y-4">
-              <Link href="/games" className="text-gray-600 hover:text-vibrant-orange transition-colors">
+              <Link href="/games" className="text-dark-green hover:text-vibrant-orange transition-colors font-medium">
                 Browse Games
               </Link>
-              <Link href="/how-it-works" className="text-gray-600 hover:text-vibrant-orange transition-colors">
+              <Link href="/how-it-works" className="text-dark-green hover:text-vibrant-orange transition-colors font-medium">
                 How It Works
               </Link>
-              <Link href="/community" className="text-gray-600 hover:text-vibrant-orange transition-colors">
+              <Link href="/community" className="text-dark-green hover:text-vibrant-orange transition-colors font-medium">
                 Community
               </Link>
               <div className="flex flex-col space-y-2 pt-2">
@@ -100,24 +140,12 @@ export function Navigation() {
                         List a Game
                       </Link>
                     </Button>
-                    <Button variant="ghost" asChild className="justify-start">
-                      <Link href="/profile">
-                        <User className="w-4 h-4 mr-2" />
-                        {profile?.username || 'Profile'}
-                      </Link>
-                    </Button>
-                    <Button variant="outline" onClick={signOut} className="justify-start">
-                      <LogOut className="w-4 h-4 mr-2" />
-                      Sign Out
-                    </Button>
+                                         
                   </>
                 ) : (
                   <>
-                    <Button variant="ghost" asChild className="justify-start">
-                      <Link href="/login">Sign In</Link>
-                    </Button>
                     <Button asChild className="bg-vibrant-orange hover:bg-vibrant-orange/90">
-                      <Link href="/signup">Join Community</Link>
+                      <Link href="/join">Join the Table</Link>
                     </Button>
                   </>
                 )}

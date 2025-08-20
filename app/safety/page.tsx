@@ -24,7 +24,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { useState } from "react"
-import { Navigation } from "@/components/navigation"
+
 
 const safetyTips = [
   {
@@ -136,7 +136,7 @@ const emergencyContacts = [
 export default function SafetyPage() {
   return (
     <div className="min-h-screen bg-light-beige">
-      <Navigation />
+
 
       <div className="container mx-auto px-4 py-8">
         {/* Hero Section */}

@@ -26,7 +26,7 @@ import Image from "next/image"
 
 // Import the price comparison component at the top
 import { PriceComparison } from "@/components/price-comparison"
-import { Navigation } from "@/components/navigation"
+
 
 // Mock game data - would come from API
 const gameData = {
@@ -112,7 +112,7 @@ export default function GameDetailPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navigation />
+
 
       <div className="container mx-auto px-4 py-8">
         {/* Breadcrumb */}

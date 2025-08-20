@@ -2,12 +2,12 @@
 export interface User {
   id: string
   email: string
-  username: string
+  username: string // Always populated (initially with email)
   full_name?: string
   avatar?: string
   bio?: string
   city: string
-  country: 'estonia' | 'latvia' | 'lithuania'
+  country: 'Estonia' | 'Latvia' | 'Lithuania' | null // Can be null initially, set during profile completion
   language: 'en' | 'et' | 'lv' | 'lt'
   is_verified: boolean
   rating: number

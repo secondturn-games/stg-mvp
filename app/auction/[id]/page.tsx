@@ -12,7 +12,7 @@ import { Gavel, Clock, Heart, MapPin, Star, AlertCircle, TrendingUp, Dice1, Dice
 import Link from "next/link"
 import Image from "next/image"
 import { AuctionBidHistory } from "@/components/auction-bid-history"
-import { Navigation } from "@/components/navigation"
+
 
 // Mock auction data
 const mockAuction = {
@@ -125,7 +125,7 @@ export default function AuctionPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navigation />
+
 
       <div className="container mx-auto px-4 py-8">
         {/* Breadcrumb */}

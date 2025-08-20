@@ -13,13 +13,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Textarea } from '@/components/ui/textarea'
-import { Navigation } from '@/components/navigation'
+import { LogOut } from 'lucide-react'
+
 
 const profileSchema = z.object({
   username: z.string().min(3, 'Username must be at least 3 characters'),
   full_name: z.string().min(2, 'Full name must be at least 2 characters'),
   city: z.string().min(2, 'City is required'),
-  country: z.enum(['estonia', 'latvia', 'lithuania']),
+  country: z.enum(['Estonia', 'Latvia', 'Lithuania']),
   language: z.enum(['en', 'et', 'lv', 'lt']),
   bio: z.string().optional()
 })
@@ -30,7 +31,7 @@ export default function ProfilePage() {
   const [isLoading, setIsLoading] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const { profile, updateProfile } = useAuth()
+  const { profile, updateProfile, signOut } = useAuth()
 
   const {
     register,
@@ -44,7 +45,7 @@ export default function ProfilePage() {
       username: profile?.username || '',
       full_name: profile?.full_name || '',
       city: profile?.city || '',
-      country: profile?.country || 'latvia',
+      country: profile?.country || 'Latvia',
       language: profile?.language || 'en',
       bio: profile?.bio || ''
     }
@@ -54,11 +55,11 @@ export default function ProfilePage() {
   useEffect(() => {
     if (profile && !isLoading) {
       reset({
-        username: profile.username,
+        username: profile.username || '',
         full_name: profile.full_name || '',
-        city: profile.city,
-        country: profile.country,
-        language: profile.language,
+        city: profile.city || '',
+        country: profile.country || 'Latvia',
+        language: profile.language || 'en',
         bio: profile.bio || ''
       })
     }
@@ -87,7 +88,7 @@ export default function ProfilePage() {
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-gray-50">
-        <Navigation />
+  
         
         <div className="py-12 px-4 sm:px-6 lg:px-8">
           <div className="max-w-2xl mx-auto">
@@ -204,6 +205,37 @@ export default function ProfilePage() {
                     {isLoading ? 'Updating...' : 'Update Profile'}
                   </Button>
                 </form>
+
+                {/* Divider */}
+                <div className="my-8 border-t border-gray-200" />
+
+                {/* Sign Out Section */}
+                <div className="space-y-4">
+                  <div className="text-center">
+                    <h3 className="text-lg font-medium text-gray-900">Account Actions</h3>
+                    <p className="text-sm text-gray-600 mt-1">
+                      Manage your account and session
+                    </p>
+                  </div>
+                  
+                  <Button 
+                    variant="outline" 
+                    onClick={async () => {
+                      try {
+                        await signOut()
+                        window.location.href = '/'
+                      } catch (error) {
+                        console.error('Sign out error:', error)
+                        // Fallback redirect even if signOut fails
+                        window.location.href = '/'
+                      }
+                    }}
+                    className="w-full border-red-200 text-red-700 hover:bg-red-50 hover:border-red-300"
+                  >
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Leave the Table
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </div>

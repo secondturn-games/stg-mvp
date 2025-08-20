@@ -22,7 +22,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { useState } from "react"
-import { Navigation } from "@/components/navigation"
+
 
 const steps = [
   {
@@ -81,7 +81,7 @@ const safetyTips = [
 export default function HowItWorksPage() {
   return (
     <div className="min-h-screen bg-light-beige">
-      <Navigation />
+
 
       <div className="container mx-auto px-4 py-8">
         <div className="text-center">
@@ -97,7 +97,7 @@ export default function HowItWorksPage() {
             Trading board games in the Baltics has never been easier. Four simple steps to get started.
           </p>
           <Button size="lg" className="bg-vibrant-orange hover:bg-vibrant-orange/90 w-full max-w-sm" asChild>
-            <Link href="/signup">Get Started Now</Link>
+                            <Link href="/join">Get Started Now</Link>
           </Button>
         </div>
       </div>
@@ -278,7 +278,7 @@ export default function HowItWorksPage() {
           <p className="text-lg mb-6 opacity-90 px-2">Join thousands of Baltic board gamers</p>
           <div className="space-y-3">
             <Button size="lg" variant="secondary" className="w-full max-w-sm" asChild>
-              <Link href="/signup">Create Free Account</Link>
+                              <Link href="/join">Create Free Account</Link>
             </Button>
             <Button
               size="lg"

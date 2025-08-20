@@ -104,12 +104,12 @@ $$ LANGUAGE plpgsql;
 CREATE TABLE IF NOT EXISTS users (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   email TEXT UNIQUE NOT NULL,
-  username TEXT UNIQUE NOT NULL,
+  username TEXT UNIQUE NOT NULL, -- Always populated (initially with email)
   full_name TEXT,
   avatar TEXT,
   bio TEXT,
   city TEXT NOT NULL,
-  country TEXT NOT NULL DEFAULT 'latvia',
+  country TEXT, -- Can be null initially, set during profile completion
   language TEXT NOT NULL DEFAULT 'en',
   is_verified BOOLEAN NOT NULL DEFAULT false,
   rating REAL NOT NULL DEFAULT 0,

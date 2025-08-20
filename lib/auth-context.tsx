@@ -21,6 +21,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<SupabaseUser | null>(null)
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
+  const [isSigningOut, setIsSigningOut] = useState(false)
 
   useEffect(() => {
     // Get initial session
@@ -40,6 +41,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        // Don't update state if we're in the middle of signing out
+        if (isSigningOut) {
+          return
+        }
         setUser(session?.user ?? null)
         
         if (session?.user) {
@@ -53,7 +58,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     )
 
     return () => subscription.unsubscribe()
-  }, [])
+  }, [isSigningOut])
+
+
 
   const loadProfile = async (userId: string) => {
     try {
@@ -66,6 +73,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (error) {
         console.error('Error loading profile:', error)
         return
+      }
+
+      // Check if we need to sync avatar from auth.users (for OAuth users)
+      if (data && !data.avatar) {
+        try {
+          const { data: authUser } = await supabase.auth.getUser()
+          if (authUser?.user?.user_metadata?.avatar_url) {
+            // Update the avatar in our users table
+            await supabase
+              .from('users')
+              .update({ avatar: authUser.user.user_metadata.avatar_url })
+              .eq('id', userId)
+            
+            // Reload profile with updated avatar
+            const { data: updatedProfile } = await supabase
+              .from('users')
+              .select('*')
+              .eq('id', userId)
+              .single()
+            
+            if (updatedProfile) {
+              setProfile(updatedProfile)
+              return
+            }
+          }
+        } catch (syncError) {
+          console.error('Error syncing avatar:', syncError)
+        }
       }
 
       // Use database fields directly (they now match our TypeScript interface)
@@ -81,11 +116,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       // Map TypeScript fields to database fields for the trigger
       const authData = {
-        username: profileData.username,
-        full_name: profileData.full_name,
-        city: profileData.city,
-        country: profileData.country,
-        language: profileData.language
+        username: profileData.username || email, // Use email as default username
+        city: profileData.city || 'Unknown', // Set default city if not provided
+        country: profileData.country || null, // Allow null country
+        // Set defaults for other fields
+        full_name: null,
+        language: 'en' // Default to English
       }
 
       const { data, error } = await supabase.auth.signUp({
@@ -120,7 +156,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const signOut = async () => {
-    await supabase.auth.signOut()
+    // Set flag to prevent auth state change interference
+    setIsSigningOut(true)
+    
+    try {
+      // Clear local state first to prevent race conditions
+      setUser(null)
+      setProfile(null)
+      
+      const { error } = await supabase.auth.signOut()
+      if (error) {
+        console.error('Sign out error:', error)
+        throw error
+      }
+    } catch (error) {
+      console.error('Sign out error:', error)
+      // State is already cleared, just throw the error
+      throw error
+    } finally {
+      // Reset the flag after a short delay to allow auth state change to complete
+      setTimeout(() => {
+        setIsSigningOut(false)
+      }, 1000)
+    }
   }
 
   const updateProfile = async (updates: Partial<UserProfile>) => {
@@ -132,6 +190,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       if (updates.username !== undefined) dbUpdates.username = updates.username
       if (updates.full_name !== undefined) dbUpdates.full_name = updates.full_name
+      if (updates.avatar !== undefined) dbUpdates.avatar = updates.avatar
       if (updates.city !== undefined) dbUpdates.city = updates.city
       if (updates.country !== undefined) dbUpdates.country = updates.country
       if (updates.language !== undefined) dbUpdates.language = updates.language

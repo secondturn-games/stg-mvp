@@ -23,7 +23,7 @@ import {
   Dice6,
 } from "lucide-react"
 import Link from "next/link"
-import { Navigation } from "@/components/navigation"
+
 
 const reports = [
   {
@@ -126,7 +126,7 @@ export default function AdminPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navigation />
+
 
       <div className="container mx-auto px-4 py-8">
         {/* Stats Overview */}

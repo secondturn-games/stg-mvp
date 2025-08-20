@@ -8,9 +8,10 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Search, MapPin, Euro, Package, Filter, Plus } from "lucide-react"
+import { LV, EE, LT } from 'country-flag-icons/react/3x2'
 import Link from "next/link"
 import type { Listing } from "@/types"
-import { Navigation } from "@/components/navigation"
+
 
 export default function GamesPage() {
   const router = useRouter()
@@ -67,7 +68,7 @@ export default function GamesPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navigation />
+
       <div className="py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
@@ -116,9 +117,24 @@ export default function GamesPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All countries</SelectItem>
-                  <SelectItem value="estonia">🇪🇪 Estonia</SelectItem>
-                  <SelectItem value="latvia">🇱🇻 Latvia</SelectItem>
-                  <SelectItem value="lithuania">🇱🇹 Lithuania</SelectItem>
+                  <SelectItem value="Estonia">
+                    <div className="flex items-center">
+                      <EE title="Estonia" className="w-4 h-3 mr-2" />
+                      Estonia
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="Latvia">
+                    <div className="flex items-center">
+                      <LV title="Latvia" className="w-4 h-3 mr-2" />
+                      Latvia
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="Lithuania">
+                    <div className="flex items-center">
+                      <LT title="Lithuania" className="w-4 h-3 mr-2" />
+                      Lithuania
+                    </div>
+                  </SelectItem>
                 </SelectContent>
               </Select>
               <Button variant="outline" onClick={() => {

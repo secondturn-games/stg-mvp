@@ -24,7 +24,7 @@ import {
   Truck,
   Package
 } from 'lucide-react'
-import { Navigation } from '@/components/navigation'
+
 import type { Listing } from '@/types'
 
 export default function ListingDetailPage() {
@@ -96,7 +96,6 @@ export default function ListingDetailPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-light-beige">
-        <Navigation />
         <div className="container mx-auto px-4 py-8">
           <div className="flex items-center justify-center min-h-[400px]">
             <div className="text-center">
@@ -112,7 +111,6 @@ export default function ListingDetailPage() {
   if (error) {
     return (
       <div className="min-h-screen bg-light-beige">
-        <Navigation />
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-2xl mx-auto">
             <Card className="border-l-4 border-l-red-500">
@@ -136,7 +134,6 @@ export default function ListingDetailPage() {
   if (!listing) {
     return (
       <div className="min-h-screen bg-light-beige">
-        <Navigation />
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-2xl mx-auto">
             <Card>
@@ -159,8 +156,6 @@ export default function ListingDetailPage() {
 
   return (
     <div className="min-h-screen bg-light-beige">
-      <Navigation />
-      
       <div className="container mx-auto px-4 py-8 max-w-6xl">
         {/* Breadcrumb */}
         <div className="mb-6">

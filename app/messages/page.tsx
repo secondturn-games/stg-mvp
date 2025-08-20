@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Search, Send, MoreVertical, Archive, Flag, Dice1, Dice6, ImageIcon, Paperclip } from "lucide-react"
 import Link from "next/link"
-import { Navigation } from "@/components/navigation"
+
 
 const conversations = [
   {
@@ -135,7 +135,7 @@ export default function MessagesPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navigation />
+
 
       <div className="container mx-auto px-4 py-8">
         <div className="grid lg:grid-cols-3 gap-6 h-[calc(100vh-200px)]">

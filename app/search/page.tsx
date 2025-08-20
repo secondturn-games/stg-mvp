@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Search, Dice1, Dice6, Star, Users, Clock, Eye, Bell, TrendingUp } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
-import { Navigation } from "@/components/navigation"
+
 
 interface SearchResult {
   type: "marketplace" | "bgg"
@@ -137,7 +137,7 @@ export default function SearchPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navigation />
+
 
       <div className="container mx-auto px-4 py-8">
         {/* Search Header */}
