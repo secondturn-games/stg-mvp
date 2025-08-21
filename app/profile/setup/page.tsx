@@ -33,7 +33,7 @@ const profileSchema = z.object({
 type ProfileForm = z.infer<typeof profileSchema>
 
 export default function ProfileSetupPage() {
-  const [isLoading, setIsLoading] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [isCheckingUsername, setIsCheckingUsername] = useState(false)
   const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null)
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
@@ -47,12 +47,24 @@ export default function ProfileSetupPage() {
   })
   
   const router = useRouter()
-  const { user, profile, refreshProfile } = useAuth()
+  const { user, profile, refreshProfile, isLoading } = useAuth()
+
+  // Wait for auth to load before rendering form
+  if (isLoading || !user) {
+    return (
+      <div className="min-h-screen bg-light-beige flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin text-vibrant-orange mx-auto mb-4" />
+          <p className="text-dark-green">Loading...</p>
+        </div>
+      </div>
+    )
+  }
 
   const form = useForm<ProfileForm>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
-      username: profile?.username || '',
+      username: profile?.username || user.email?.split('@')[0] || '',
       country: profile?.country || undefined,
       city: profile?.city || '',
       bio: profile?.bio || ''
@@ -65,6 +77,18 @@ export default function ProfileSetupPage() {
       router.push('/join/verify')
     }
   }, [user]) // Removed router from dependencies
+
+  // Reset form when profile loads
+  useEffect(() => {
+    if (profile) {
+      form.reset({
+        username: profile.username || user.email?.split('@')[0] || '',
+        country: profile.country || undefined,
+        city: profile.city || '',
+        bio: profile.bio || ''
+      })
+    }
+  }, [profile, user.email, form])
 
   // Check username availability
   const checkUsername = async (username: string) => {
@@ -126,7 +150,7 @@ export default function ProfileSetupPage() {
   }
 
   const onSubmit = async (data: ProfileForm) => {
-    setIsLoading(true)
+    setIsSubmitting(true)
     setError(null)
     
     try {
@@ -159,7 +183,7 @@ export default function ProfileSetupPage() {
     } catch (err) {
       setError('Failed to update profile')
     } finally {
-      setIsLoading(false)
+      setIsSubmitting(false)
     }
   }
 
@@ -374,9 +398,9 @@ export default function ProfileSetupPage() {
             <Button 
               type="submit" 
               className="w-full h-12 bg-vibrant-orange hover:bg-vibrant-orange/90 text-white font-semibold text-lg rounded-2xl transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98]" 
-              disabled={isLoading || !form.formState.isValid || !usernameAvailable}
+              disabled={isSubmitting || !form.formState.isValid || !usernameAvailable}
             >
-              {isLoading ? (
+              {isSubmitting ? (
                 <div className="flex items-center gap-2">
                   <Loader2 className="w-5 h-5 animate-spin" />
                   Setting up profile...
