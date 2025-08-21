@@ -24,6 +24,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [isSigningOut, setIsSigningOut] = useState(false)
+  const [isLoadingProfile, setIsLoadingProfile] = useState(false)
 
   useEffect(() => {
     // Get initial session
@@ -47,6 +48,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (isSigningOut) {
           return
         }
+
+        // Prevent infinite loops by checking if user actually changed
+        const currentUserId = user?.id
+        const newUserId = session?.user?.id
+        
+        if (currentUserId === newUserId && user?.email === session?.user?.email) {
+          // User hasn't actually changed, don't trigger updates
+          return
+        }
+
         setUser(session?.user ?? null)
         
         if (session?.user) {
@@ -65,6 +76,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 
   const loadProfile = async (userId: string) => {
+    // Prevent multiple simultaneous profile loads
+    if (isLoadingProfile) {
+      console.log('Profile load already in progress, skipping...')
+      return
+    }
+    
+    setIsLoadingProfile(true)
+    
     try {
       const { data, error } = await supabase
         .from('users')
@@ -80,24 +99,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Check if we need to sync avatar from auth.users (for OAuth users)
       if (data && !data.avatar) {
         try {
-          const { data: authUser } = await supabase.auth.getUser()
-          if (authUser?.user?.user_metadata?.avatar_url) {
+          // Get the current user from the session instead of calling getUser again
+          const { data: { session } } = await supabase.auth.getSession()
+          const currentUser = session?.user
+          
+          if (currentUser?.user_metadata?.avatar_url) {
             // Update the avatar in our users table
-            await supabase
+            const { error: updateError } = await supabase
               .from('users')
-              .update({ avatar: authUser.user.user_metadata.avatar_url })
+              .update({ avatar: currentUser.user_metadata.avatar_url })
               .eq('id', userId)
             
-            // Reload profile with updated avatar
-            const { data: updatedProfile } = await supabase
-              .from('users')
-              .select('*')
-              .eq('id', userId)
-              .single()
-            
-            if (updatedProfile) {
-              setProfile(updatedProfile)
-              return
+            if (updateError) {
+              console.error('Error updating avatar:', updateError)
+            } else {
+              // Reload profile with updated avatar
+              const { data: updatedProfile } = await supabase
+                .from('users')
+                .select('*')
+                .eq('id', userId)
+                .single()
+              
+              if (updatedProfile) {
+                setProfile(updatedProfile)
+                return
+              }
             }
           }
         } catch (syncError) {
@@ -108,9 +134,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Use database fields directly (they now match our TypeScript interface)
       setProfile(data)
 
-
     } catch (error) {
       console.error('Error loading profile:', error)
+    } finally {
+      setIsLoadingProfile(false)
     }
   }
 
