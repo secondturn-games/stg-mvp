@@ -19,6 +19,7 @@ import {
   Package,
   Menu,
   X,
+  Gamepad2,
 } from "lucide-react"
 import Link from "next/link"
 import { useState } from "react"
@@ -85,9 +86,10 @@ export default function HowItWorksPage() {
 
       <div className="container mx-auto px-4 py-8">
         <div className="text-center">
-          <Badge className="mb-4 bg-warm-yellow text-dark-green hover:bg-warm-yellow text-sm">
-            🎲 Simple & Safe Trading
-          </Badge>
+          <div className="flex items-center gap-2 text-lg font-semibold text-dark-green mb-2">
+            <Gamepad2 className="w-5 h-5 text-vibrant-orange" />
+            <span>Simple & Safe Trading</span>
+          </div>
           <h1 className="text-3xl md:text-5xl font-bold text-dark-green mb-4 leading-tight">
             How Second Turn
             <br />

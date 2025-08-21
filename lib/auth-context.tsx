@@ -9,10 +9,12 @@ interface AuthContextType {
   user: SupabaseUser | null
   profile: UserProfile | null
   loading: boolean
+  isLoading: boolean
   signUp: (email: string, password: string, profile: Partial<UserProfile>) => Promise<{ error: any }>
   signIn: (email: string, password: string) => Promise<{ error: any }>
   signOut: () => Promise<void>
   updateProfile: (updates: Partial<UserProfile>) => Promise<{ error: any }>
+  refreshProfile: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -211,14 +213,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  const refreshProfile = async () => {
+    if (user) {
+      await loadProfile(user.id)
+    }
+  }
+
   const value = {
     user,
     profile,
     loading,
+    isLoading: loading,
     signUp,
     signIn,
     signOut,
-    updateProfile
+    updateProfile,
+    refreshProfile
   }
 
   return (

@@ -42,7 +42,8 @@ export function Navigation() {
 
   return (
     <header className="border-b-2 border-dark-green bg-light-beige/95 backdrop-blur-sm sticky top-0 z-50">
-      <div className="px-4 py-3">
+      {/* Desktop: 64px height (4rem), Mobile: 56px height (3.5rem) */}
+      <div className="px-4 py-2 lg:py-3">
         <div className="flex items-center justify-between">
           <Link href="/" className="flex items-center">
             <Image
@@ -50,7 +51,7 @@ export function Navigation() {
               alt="Second Turn"
               width={175}
               height={40}
-              className="h-10 w-auto"
+              className="h-10 w-auto lg:h-12"
               priority
             />
           </Link>

@@ -9,61 +9,51 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { X, Loader2, Mail, Lock, ChevronDown, ChevronUp, Info } from 'lucide-react'
+import { X, Loader2, Mail, Lock, Info, ChevronUp, ChevronDown } from 'lucide-react'
 import { useAuth } from '@/lib/auth-context'
 import { useRouter } from 'next/navigation'
 
 import { supabase } from '@/lib/db'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
-// Signup schema
-const signUpSchema = z.object({
+// Unified form schema
+const unifiedSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
   password: z.string()
     .min(8, 'Password must be at least 8 characters')
     .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/, 'Password must contain lowercase, uppercase, digit and symbol')
 })
 
-// Signin schema
-const signInSchema = z.object({
-  email: z.string().email('Please enter a valid email address'),
-  password: z.string().min(1, 'Password is required')
-})
-
-type SignUpForm = z.infer<typeof signUpSchema>
-type SignInForm = z.infer<typeof signInSchema>
+type UnifiedForm = z.infer<typeof unifiedSchema>
 
 export default function JoinPage() {
-  const [activeTab, setActiveTab] = useState('signup')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-
-  const [showEmailForm, setShowEmailForm] = useState(false)
   const [isGoogleLoading, setIsGoogleLoading] = useState(false)
+  const [showEmailForm, setShowEmailForm] = useState(false)
   const router = useRouter()
-  const { signUp, signIn } = useAuth()
+  const { signUp, signIn, profile } = useAuth()
 
-  // Signup form
-  const signUpForm = useForm<SignUpForm>({
-    resolver: zodResolver(signUpSchema)
+  // Unified form
+  const form = useForm<UnifiedForm>({
+    resolver: zodResolver(unifiedSchema)
   })
-
-  // Signin form
-  const signInForm = useForm<SignInForm>({
-    resolver: zodResolver(signInSchema)
-  })
-
-
 
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true)
     setError(null)
     
     try {
+      // Detect current environment and set appropriate redirect
+      const currentOrigin = window.location.origin
+      const isVercelPreview = currentOrigin.includes('vercel.app')
+      const redirectUrl = isVercelPreview 
+        ? currentOrigin 
+        : (process.env.NEXT_PUBLIC_APP_URL || currentOrigin)
+      
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`
+          redirectTo: `${redirectUrl}/profile/setup`
         }
       })
       
@@ -77,51 +67,57 @@ export default function JoinPage() {
     }
   }
 
-  const onSignUp = async (data: SignUpForm) => {
+  const onSubmit = async (data: z.infer<typeof unifiedSchema>) => {
     setIsLoading(true)
     setError(null)
-
+    
     try {
-      const { error } = await signUp(data.email, data.password, {})
-
-      if (error) {
-        setError(error.message)
+      // Try to sign in first
+      const signInResult = await signIn(data.email, data.password)
+      
+      if (signInResult.error) {
+        // If sign in fails, try to sign up
+        const signUpResult = await signUp(data.email, data.password, {})
+        
+        if (signUpResult.error) {
+          // Enhanced error handling for different error types
+          if (signUpResult.error.message?.includes('Database error')) {
+            setError('We\'re experiencing technical difficulties. Please try again in a few minutes or contact support if the issue persists.')
+          } else if (signUpResult.error.message?.includes('network') || signUpResult.error.message?.includes('timeout')) {
+            setError('Connection issue detected. Please check your internet connection and try again.')
+          } else if (signUpResult.error.message?.includes('rate limit')) {
+            setError('Too many attempts. Please wait a moment before trying again.')
+          } else {
+            setError(signUpResult.error.message || 'An unexpected error occurred. Please try again.')
+          }
+        } else {
+          // Account created successfully - redirect to verification
+          router.push(`/join/verify?email=${encodeURIComponent(data.email)}`)
+        }
       } else {
-        router.push('/')
+        // Sign in successful - check if profile is complete
+        if (profile && profile.username && profile.country) {
+          router.push('/games')
+        } else {
+          router.push('/profile/setup')
+        }
       }
     } catch (err) {
-      setError('An unexpected error occurred')
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const onSignIn = async (data: SignInForm) => {
-    setIsLoading(true)
-    setError(null)
-
-    try {
-      const { error } = await signIn(data.email, data.password)
-
-      if (error) {
-        setError(error.message)
-      } else {
-        router.push('/')
-      }
-    } catch (err) {
-      setError('An unexpected error occurred')
+      // Handle unexpected errors
+      console.error('Unexpected error during auth:', err)
+      setError('We\'re experiencing technical difficulties. Please try again in a few minutes.')
     } finally {
       setIsLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen bg-light-beige flex items-center justify-center py-6 px-4 sm:px-6 lg:px-8">
+    <div className="h-screen bg-light-beige flex items-start justify-center pt-24 px-4 sm:px-6 lg:px-8">
       <Card className="w-full max-w-md bg-white shadow-xl border-0">
         <CardHeader className="space-y-3 text-center pb-6">
           <CardTitle className="text-2xl font-bold text-dark-green">Join the Table</CardTitle>
-          <CardDescription className="text-gray-600">
-            Start your board game journey in under 30 seconds
+          <CardDescription className="text-gray-600 font-medium">
+            Give your games a second turn, and find your next one
           </CardDescription>
         </CardHeader>
         
@@ -139,7 +135,7 @@ export default function JoinPage() {
               type="button"
               onClick={handleGoogleSignIn}
               disabled={isGoogleLoading}
-              className="w-full h-12 bg-white border-2 border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300 active:bg-gray-100 transition-all duration-200 font-medium shadow-sm"
+              className="w-full h-12 bg-white border-2 border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300 active:bg-gray-100 transition-all duration-200 font-medium shadow-lg rounded-2xl"
             >
               {isGoogleLoading ? (
                 <Loader2 className="w-5 h-5 animate-spin mr-2" />
@@ -159,153 +155,78 @@ export default function JoinPage() {
             {/* Divider */}
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-200" />
+                <div className="w-full border-t border-muted-foreground/30" />
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">or</span>
+                <span className="px-2 bg-white text-muted-foreground">or</span>
               </div>
             </div>
 
-            {/* Tabs for Email Options */}
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="signup">New Player</TabsTrigger>
-                <TabsTrigger value="signin">Returning Player</TabsTrigger>
-              </TabsList>
-
-              {/* Signup Tab */}
-              <TabsContent value="signup" className="space-y-4 pt-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setShowEmailForm(!showEmailForm)}
-                  className="w-full h-12 border-light-beige text-dark-green hover:bg-light-beige/50 active:bg-light-beige/30 transition-all duration-200"
-                >
-                  <Mail className="w-4 h-4 mr-2 flex-shrink-0" />
-                  <span className="truncate">Sign up with email</span>
-                  {showEmailForm ? (
-                    <ChevronUp className="w-4 h-4 ml-auto flex-shrink-0" />
-                  ) : (
-                    <ChevronDown className="w-4 h-4 ml-auto flex-shrink-0" />
-                  )}
-                </Button>
-
-                {/* Email Signup Form */}
-                {showEmailForm && (
-                  <form onSubmit={signUpForm.handleSubmit(onSignUp)} className="space-y-5 pt-4 border-t border-gray-100">
-                    {/* Email Field */}
-                    <div className="space-y-2">
-                      <Label htmlFor="signup-email" className="text-dark-green font-medium flex items-center gap-2">
-                        <Mail className="w-4 h-4 text-vibrant-orange" />
-                        Email
-                      </Label>
-                      <Input
-                        id="signup-email"
-                        type="email"
-                        {...signUpForm.register('email')}
-                        placeholder="your@email.com"
-                        className="h-12 border-light-beige focus:border-vibrant-orange focus:ring-vibrant-orange/20 placeholder:text-gray-400"
-                      />
-                      {signUpForm.formState.errors.email && (
-                        <p className="text-sm text-red-600 flex items-center gap-1">
-                          <X className="w-3 h-3" />
-                          {signUpForm.formState.errors.email.message}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Password Field */}
-                    <div className="space-y-2">
-                                             <Label htmlFor="signup-password" className="text-dark-green font-medium flex items-center gap-2">
-                         <Lock className="w-4 h-4 text-vibrant-orange" />
-                         Password
-                         <div className="relative group">
-                           <Info className="w-4 h-4 text-gray-400 cursor-help" />
-                           <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
-                             At least 8 characters, lowercase, uppercase letters, digits and symbols
-                             <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-800"></div>
-                           </div>
-                         </div>
-                       </Label>
-                      <Input
-                        id="signup-password"
-                        type="password"
-                        {...signUpForm.register('password')}
-                        placeholder="••••••••"
-                        className="h-12 border-light-beige focus:border-vibrant-orange focus:ring-vibrant-orange/20 placeholder:text-gray-400"
-                      />
-                      {signUpForm.formState.errors.password && (
-                        <p className="text-sm text-red-600 flex items-center gap-1">
-                          <X className="w-3 h-3" />
-                          {signUpForm.formState.errors.password.message}
-                        </p>
-                      )}
-                    </div>
-
-
-
-
-
-                    {/* Submit Button */}
-                                         <Button 
-                       type="submit" 
-                       className="w-full h-12 bg-vibrant-orange hover:bg-vibrant-orange/90 text-white font-semibold text-lg rounded-xl transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98]" 
-                       disabled={isLoading || !signUpForm.formState.isValid}
-                     >
-                      {isLoading ? (
-                        <div className="flex items-center gap-2">
-                          <Loader2 className="w-5 h-5 animate-spin" />
-                          Creating your account...
-                        </div>
-                      ) : (
-                        'Join the Table'
-                      )}
-                    </Button>
-                  </form>
+            {/* Collapsible Email Form */}
+            <div className="space-y-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowEmailForm(!showEmailForm)}
+                className="w-full h-12 border-dark-green text-dark-green hover:bg-dark-green/5 active:bg-dark-green/10 transition-all duration-200 relative rounded-2xl"
+              >
+                <Mail className="w-4 h-4 mr-2 flex-shrink-0" />
+                <span className="truncate">Continue with Email</span>
+                {showEmailForm ? (
+                  <ChevronUp className="w-4 h-4 absolute right-3" />
+                ) : (
+                  <ChevronDown className="w-4 h-4 absolute right-3" />
                 )}
-              </TabsContent>
+              </Button>
 
-              {/* Signin Tab */}
-              <TabsContent value="signin" className="space-y-4 pt-4">
-                <form onSubmit={signInForm.handleSubmit(onSignIn)} className="space-y-5">
+              {/* Email Form */}
+              {showEmailForm && (
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5 pt-4 border-t border-gray-100">
                   {/* Email Field */}
                   <div className="space-y-2">
-                    <Label htmlFor="signin-email" className="text-dark-green font-medium flex items-center gap-2">
+                    <Label htmlFor="email" className="text-dark-green font-medium flex items-center gap-2">
                       <Mail className="w-4 h-4 text-vibrant-orange" />
                       Email
                     </Label>
                     <Input
-                      id="signin-email"
+                      id="email"
                       type="email"
-                      {...signInForm.register('email')}
+                      {...form.register('email')}
                       placeholder="your@email.com"
                       className="h-12 border-light-beige focus:border-vibrant-orange focus:ring-vibrant-orange/20 placeholder:text-gray-400"
                     />
-                    {signInForm.formState.errors.email && (
+                    {form.formState.errors.email && (
                       <p className="text-sm text-red-600 flex items-center gap-1">
                         <X className="w-3 h-3" />
-                        {signInForm.formState.errors.email.message}
+                        {form.formState.errors.email.message}
                       </p>
                     )}
                   </div>
 
                   {/* Password Field */}
                   <div className="space-y-2">
-                    <Label htmlFor="signin-password" className="text-dark-green font-medium flex items-center gap-2">
+                    <Label htmlFor="password" className="text-dark-green font-medium flex items-center gap-2">
                       <Lock className="w-4 h-4 text-vibrant-orange" />
                       Password
+                      <div className="relative group">
+                        <Info className="w-4 h-4 text-gray-400 cursor-help" />
+                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
+                          At least 8 characters, lowercase, uppercase letters, digits and symbols
+                          <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-800"></div>
+                        </div>
+                      </div>
                     </Label>
                     <Input
-                      id="signin-password"
+                      id="password"
                       type="password"
-                      {...signInForm.register('password')}
+                      {...form.register('password')}
                       placeholder="••••••••"
                       className="h-12 border-light-beige focus:border-vibrant-orange focus:ring-vibrant-orange/20 placeholder:text-gray-400"
                     />
-                    {signInForm.formState.errors.password && (
+                    {form.formState.errors.password && (
                       <p className="text-sm text-red-600 flex items-center gap-1">
                         <X className="w-3 h-3" />
-                        {signInForm.formState.errors.password.message}
+                        {form.formState.errors.password.message}
                       </p>
                     )}
                   </div>
@@ -314,22 +235,20 @@ export default function JoinPage() {
                   <Button 
                     type="submit" 
                     className="w-full h-12 bg-vibrant-orange hover:bg-vibrant-orange/90 text-white font-semibold text-lg rounded-xl transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98]" 
-                    disabled={isLoading || !signInForm.formState.isValid}
+                    disabled={isLoading || !form.formState.isValid}
                   >
                     {isLoading ? (
                       <div className="flex items-center gap-2">
                         <Loader2 className="w-5 h-5 animate-spin" />
-                        Signing in...
+                        Continuing...
                       </div>
                     ) : (
-                      'Welcome Back!'
+                      'Continue'
                     )}
                   </Button>
                 </form>
-              </TabsContent>
-            </Tabs>
-
-
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>

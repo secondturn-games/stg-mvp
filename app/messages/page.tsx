@@ -1,13 +1,13 @@
 "use client"
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
+import { useState, useEffect } from 'react'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { Search, Send, MoreVertical, Archive, Flag, Dice1, Dice6, ImageIcon, Paperclip } from "lucide-react"
+import { Search, Send, MoreVertical, Archive, Flag, Dice1, Dice6, ImageIcon, Paperclip, Lightbulb } from "lucide-react"
 import Link from "next/link"
 
 
@@ -307,8 +307,9 @@ export default function MessagesPage() {
                 </Button>
               </div>
 
-              <div className="text-xs text-gray-500 mt-2">
-                💡 Tip: Meet in public places and use secure payment methods
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <Lightbulb className="w-4 h-4 text-gray-400" />
+                <span>Tip: Meet in public places and use secure payment methods</span>
               </div>
             </div>
           </Card>

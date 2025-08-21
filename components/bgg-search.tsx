@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Label } from "@/components/ui/label"
-import { Search, Loader2, ExternalLink, Check, X, RotateCcw } from "lucide-react"
+import { Search, Loader2, ExternalLink, Check, X, RotateCcw, Lightbulb } from "lucide-react"
 import { debounce } from "lodash"
 
 interface BGGSearchResult {
@@ -258,7 +258,10 @@ export function BGGSearch({ onGameSelect, selectedGameId, gameType = 'base-game'
         <div className="text-center py-6 px-4">
           <div className="text-gray-500 text-sm mb-2">No games found for "{searchTerm}"</div>
           <div className="text-xs text-gray-400 max-w-sm mx-auto space-y-1">
-            <div>💡 Try these suggestions:</div>
+            <div className="flex items-center gap-2 text-sm text-gray-600">
+                <Lightbulb className="w-4 h-4 text-gray-400" />
+                <span>Try these suggestions:</span>
+              </div>
             <div>• Check your spelling (e.g., "Wingspan" not "Wngspn")</div>
             <div>• Use the game's primary name from{" "}
               <a 

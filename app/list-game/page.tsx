@@ -11,7 +11,9 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Loader2, Plus, Euro, Gavel, ExternalLink, Package, Calendar, Users, Cake, Clock, Type, Camera, MapPin, Truck, Star, Upload, X, ChevronDown, ChevronUp, Eye, Heart, MessageCircle, Shield, Gift, RefreshCw } from "lucide-react"
+import { Textarea } from "@/components/ui/textarea"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Loader2, Plus, Euro, Gavel, ExternalLink, Package, Calendar, Users, Cake, Clock, Type, Camera, MapPin, Truck, Star, Upload, X, ChevronDown, ChevronUp, Eye, Heart, MessageCircle, Shield, Gift, RefreshCw, Search, Lightbulb, Gamepad2 } from "lucide-react"
 
 import { ProtectedRoute } from "@/components/protected-route"
 
@@ -1039,9 +1041,10 @@ export default function ListGamePage() {
 
                   {searchTerm.trim().length > 0 && !hasValidSearchTerm && !isSearching && (
                     <div className="p-3 bg-light-green/50 border border-light-green rounded-lg">
-                      <p className="text-sm lg:text-base text-dark-green">
-                        💡 Type the game name (at least 2 letters)
-                      </p>
+                      <div className="flex items-center gap-2 text-sm lg:text-base text-dark-green">
+                        <Lightbulb className="w-4 h-4 text-gray-400" />
+                        <span>Type the game name (at least 2 letters)</span>
+                      </div>
                     </div>
                   )}
 
@@ -1072,7 +1075,7 @@ export default function ListGamePage() {
                                 />
                               ) : (
                                 <div className="w-14 h-14 lg:w-18 lg:h-18 bg-gray-200 rounded-lg flex-shrink-0 flex items-center justify-center shadow-sm">
-                                  <span className="text-gray-400 text-xs">🎲</span>
+                                  <Gamepad2 className="w-3 h-3 text-gray-400" />
                                 </div>
                               )}
                               
