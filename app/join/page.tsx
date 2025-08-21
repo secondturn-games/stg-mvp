@@ -43,18 +43,10 @@ export default function JoinPage() {
     setError(null)
     
     try {
-      // Detect current environment and set appropriate redirect
-      const currentOrigin = window.location.origin
-      const isVercelPreview = currentOrigin.includes('vercel.app')
-      const redirectUrl = isVercelPreview 
-        ? currentOrigin 
-        : (process.env.NEXT_PUBLIC_APP_URL || currentOrigin)
-      
+      // Let the server-side OAuth callback handle the redirect
       const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${redirectUrl}/profile/setup`
-        }
+        provider: 'google'
+        // Remove redirectTo - let the callback route handle it
       })
       
       if (error) {
