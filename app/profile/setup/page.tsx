@@ -64,7 +64,7 @@ export default function ProfileSetupPage() {
     if (user && !user.email_confirmed_at) {
       router.push('/join/verify')
     }
-  }, [user, router])
+  }, [user]) // Removed router from dependencies
 
   // Check username availability
   const checkUsername = async (username: string) => {
